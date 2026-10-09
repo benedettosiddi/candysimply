@@ -25,7 +25,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
-from .discovery import async_discover_candy_devices
+from .discovery import async_discover_candy_devices, async_probe_candy_device
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -143,9 +143,14 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
 
+        session = async_get_clientsession(self.hass)
+        probe = await async_probe_candy_device(host, session, timeout=1.2)
+        if not probe:
+            return self.async_abort(reason="not_candy_device")
+
         self._discovered_host = host
-        self._discovered_name = getattr(discovery_info, "name", f"Candy ({host})")
-        _LOGGER.info("Zeroconf discovered Candy appliance at %s", host)
+        self._discovered_name = probe.name
+        _LOGGER.info("Zeroconf verified Candy appliance at %s (%s)", host, probe.name)
         return await self.async_step_discovery_confirm()
 
     async def async_step_dhcp(
@@ -161,9 +166,14 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
 
+        session = async_get_clientsession(self.hass)
+        probe = await async_probe_candy_device(host, session, timeout=1.2)
+        if not probe:
+            return self.async_abort(reason="not_candy_device")
+
         self._discovered_host = host
-        self._discovered_name = getattr(discovery_info, "hostname", f"Candy ({host})")
-        _LOGGER.info("DHCP discovered Candy appliance: host=%s, mac=%s", host, mac)
+        self._discovered_name = probe.name
+        _LOGGER.info("DHCP verified Candy appliance: host=%s, name=%s", host, probe.name)
         return await self.async_step_discovery_confirm()
 
     async def async_step_ssdp(
@@ -179,9 +189,14 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
 
+        session = async_get_clientsession(self.hass)
+        probe = await async_probe_candy_device(host, session, timeout=1.2)
+        if not probe:
+            return self.async_abort(reason="not_candy_device")
+
         self._discovered_host = host
-        self._discovered_name = f"Candy ({host})"
-        _LOGGER.info("SSDP discovered Candy appliance at %s", host)
+        self._discovered_name = probe.name
+        _LOGGER.info("SSDP verified Candy appliance at %s (%s)", host, probe.name)
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(

@@ -35,7 +35,8 @@
     },
     "abort": {
       "already_configured": "Questo dispositivo è già configurato in Home Assistant.",
-      "cannot_connect": "Impossibile contattare l'indirizzo IP scoperto."
+      "cannot_connect": "Impossibile contattare l'indirizzo IP scoperto.",
+      "not_candy_device": "Il dispositivo di rete rilevato non è un elettrodomestico Candy Simply-Fi."
     }
   },
   "options": {

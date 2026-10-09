@@ -35,7 +35,8 @@
     },
     "abort": {
       "already_configured": "This appliance is already configured in Home Assistant.",
-      "cannot_connect": "Could not contact discovered IP address."
+      "cannot_connect": "Could not contact discovered IP address.",
+      "not_candy_device": "The discovered network device is not a Candy Simply-Fi appliance."
     }
   },
   "options": {

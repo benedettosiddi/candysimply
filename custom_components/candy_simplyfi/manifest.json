@@ -37,6 +37,14 @@
     {
       "type": "_http._tcp.local.",
       "name": "*WIFI_*"
+    },
+    {
+      "type": "_http._tcp.local.",
+      "name": "espressif*"
+    },
+    {
+      "type": "_http._tcp.local.",
+      "name": "ESP_*"
     }
   ],
   "dhcp": [
@@ -61,6 +69,18 @@
       "match_type": "glob"
     },
     {
+      "hostname": "espressif*",
+      "match_type": "prefix"
+    },
+    {
+      "hostname": "ESP_*",
+      "match_type": "prefix"
+    },
+    {
+      "hostname": "esp-*",
+      "match_type": "prefix"
+    },
+    {
       "macaddress": "00054F*"
     },
     {
@@ -68,6 +88,24 @@
     },
     {
       "macaddress": "30AEA4*"
+    },
+    {
+      "macaddress": "240AC4*"
+    },
+    {
+      "macaddress": "A4CF12*"
+    },
+    {
+      "macaddress": "84F3EB*"
+    },
+    {
+      "macaddress": "600194*"
+    },
+    {
+      "macaddress": "5CCF7F*"
+    },
+    {
+      "macaddress": "18FE34*"
     },
     {
       "macaddress": "D88039*"

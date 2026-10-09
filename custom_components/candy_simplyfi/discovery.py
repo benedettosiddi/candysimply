@@ -144,22 +144,66 @@ def _get_local_ip_subnets() -> List[str]:
     return subnets
 
 
+def _get_arp_candidate_ips() -> List[str]:
+    """Inspect local ARP table to find candidate IPs matching Espressif/Murata MACs."""
+    import re
+    import subprocess
+
+    candidates: List[str] = []
+    try:
+        out = subprocess.check_output(
+            ["arp", "-a"], timeout=1.5, stderr=subprocess.DEVNULL
+        ).decode("ascii", errors="ignore")
+        espressif_ouis = (
+            "24-6f-28", "30-ae-a4", "a4-cf-12", "24-0a-c4", "84-f3-eb", "68-c6-3a",
+            "60-01-94", "5c-cf-7f", "48-3f-da", "40-91-51", "2c-f4-32", "18-fe-34",
+            "10-52-1c", "08-3a-8d", "00-05-4f", "00-13-e0", "d8-80-39", "a0-20-a6",
+            "b4-e6-2d", "c4-4f-33", "dc-4f-22", "e8-68-e7", "f0-08-d1", "cc-50-e3"
+        )
+        for line in out.splitlines():
+            line_clean = line.strip().lower()
+            for oui in espressif_ouis:
+                oui_colon = oui.replace("-", ":")
+                if oui in line_clean or oui_colon in line_clean:
+                    ip_match = re.search(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", line_clean)
+                    if ip_match:
+                        ip = ip_match.group(1)
+                        if not ip.endswith(".255") and ip not in candidates:
+                            candidates.append(ip)
+    except Exception:
+        pass
+    return candidates
+
+
 async def async_discover_candy_devices(
     hass: HomeAssistant,
-    max_hosts_to_scan: int = 40,
+    max_hosts_to_scan: int = 50,
     timeout_per_probe: float = 1.0,
 ) -> List[DiscoveredCandyDevice]:
-    """Scan local subnet for Candy appliances concurrently."""
+    """Scan local subnet for Candy appliances concurrently, prioritizing Espressif devices."""
     session = async_get_clientsession(hass)
     subnets = _get_local_ip_subnets()
     found_devices: List[DiscoveredCandyDevice] = []
+    seen_ips: set[str] = set()
 
+    # 1. Fast-track: Probe ARP candidates (Espressif / Murata MAC addresses)
+    loop = asyncio.get_running_loop()
+    arp_candidates = await loop.run_in_executor(None, _get_arp_candidate_ips)
+
+    for candidate_ip in arp_candidates:
+        seen_ips.add(candidate_ip)
+        dev = await async_probe_candy_device(candidate_ip, session, timeout=timeout_per_probe)
+        if dev:
+            _LOGGER.info("Fast-tracked Candy appliance discovered via ARP OUI at %s", candidate_ip)
+            found_devices.append(dev)
+
+    # 2. Subnet scan for remaining hosts
     for subnet_str in subnets:
         try:
             net = ipaddress.ip_network(subnet_str, strict=False)
-            hosts = [str(ip) for ip in net.hosts()][:max_hosts_to_scan]
+            hosts = [str(ip) for ip in net.hosts() if str(ip) not in seen_ips][:max_hosts_to_scan]
 
-            semaphore = asyncio.Semaphore(20)
+            semaphore = asyncio.Semaphore(25)
 
             async def _probe_with_limit(ip_str: str) -> Optional[DiscoveredCandyDevice]:
                 async with semaphore:
@@ -172,7 +216,9 @@ async def async_discover_candy_devices(
 
             for res in results:
                 if isinstance(res, DiscoveredCandyDevice):
-                    found_devices.append(res)
+                    if res.host not in seen_ips:
+                        seen_ips.add(res.host)
+                        found_devices.append(res)
 
         except Exception as err:
             _LOGGER.debug("Error during Candy LAN subnet scan: %s", err)
