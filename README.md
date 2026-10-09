@@ -178,35 +178,89 @@ L'integrazione include una **scheda Lovelace personalizzata (`candy-card`)** con
 - ⚠️ **Banner Allarmi Diagnostici**:
   - Traduzione automatica dei codici di errore (E01...E22) con descrizione dettagliata della causa e risoluzione.
 
-### Come usare la Scheda Grafica Personalizzata (`candy-card`):
+### Come Installare e Usare la Scheda Grafica Animata (`candy-card`):
 
-La risorsa viene registrata in automatico dall'integrazione al percorso:
-`/candy_simplyfi/candy-card.js`
+#### 1. Registrazione della Risorsa
+La risorsa viene registrata in automatico dall'integrazione all'avvio:
+* **URL:** `/candy_simplyfi/candy-card.js`
+* **Tipo di risorsa:** `Modulo JavaScript`
 
-> Se la risorsa non dovesse caricarsi automaticamente in Lovelace:
-> Vai su **Impostazioni** -> **Dashboard** -> **Risorse** -> **Aggiungi Risorsa** -> URL: `/candy_simplyfi/candy-card.js` (Tipo: *Modulo JavaScript*).
+> [!TIP]
+> Se hai appena installato o aggiornato da HACS, premi **`Ctrl + F5`** nel browser (o svuota la cache nell'app Home Assistant Companion) per forzare il caricamento del file JavaScript aggiornato.
+> Se gestisci Lovelace in modalità YAML o la scheda non appare, vai su **Impostazioni** → **Dashboard** → **tre puntini in alto a destra** → **Risorse** → **Aggiungi Risorsa** (`/candy_simplyfi/candy-card.js`, tipo *Modulo JavaScript*).
 
-#### 1. Scheda Lavasciuga Candy:
+#### 2. Aggiunta alla Plancia (Dashboard)
+1. Apri la tua Dashboard in Home Assistant.
+2. Clicca sui **tre puntini in alto a destra** → **Modifica dashboard**.
+3. Clicca su **Aggiungi scheda** (`+`).
+4. Scorri fino in fondo all'elenco e seleziona **Manuale** (Codice YAML).
+5. Incolla la configurazione per il tuo elettrodomestico:
+
+##### A. Lavasciuga / Lavatrice Candy (Aggancio Automatico Entità):
 ```yaml
 type: custom:candy-card
 name: "Candy Lavasciuga Smart Pro"
-device_type: washer_dryer
+device_type: washer_dryer # oppure "washer" per lavatrice semplice
+entity_prefix: candy_lavasciuga # prefisso univoco delle tue entità Candy
 ```
 
-#### 2. Scheda Lavastoviglie Candy:
+##### B. Lavastoviglie Candy Brava (Aggancio Automatico Entità):
 ```yaml
 type: custom:candy-card
-name: "Candy Lavastoviglie Brava"
+name: "Candy Brava"
 device_type: dishwasher
+entity_prefix: candy_lavastoviglie # prefisso univoco delle tue entità lavastoviglie
+```
+
+##### C. Configurazione con Mappatura Esplicita (Opzionale):
+```yaml
+type: custom:candy-card
+name: "Candy Lavasciuga"
+device_type: washer_dryer
+entities:
+  status: sensor.candy_lavasciuga_stato_elettrodomestico
+  program: sensor.candy_lavasciuga_programma_attivo
+  phase: sensor.candy_lavasciuga_fase_del_ciclo
+  remaining_time: sensor.candy_lavasciuga_tempo_rimanente
+  error_code: sensor.candy_lavasciuga_codice_errore
+  temp: sensor.candy_lavasciuga_temperatura
+  spin: sensor.candy_lavasciuga_centrifuga
+  running: binary_sensor.candy_lavasciuga_in_funzione
+  door_lock: binary_sensor.candy_lavasciuga_oblo_bloccato_sicurezza
+  remote_control: binary_sensor.candy_lavasciuga_controllo_remoto_abilitato_manopola_su_wi_fi
+  select_program: select.candy_lavasciuga_seleziona_programma_di_lavaggio_asciugatura
+  select_temp: select.candy_lavasciuga_imposta_temperatura_c
+  select_spin: select.candy_lavasciuga_imposta_centrifuga_rpm
+  button_start: button.candy_lavasciuga_avvia_programma_selezionato
+  button_pause: button.candy_lavasciuga_metti_in_pausa
+  button_stop: button.candy_lavasciuga_annulla_stop_ciclo
 ```
 
 ---
 
-### Schede Native Home Assistant (Alternative Senza Custom Card)
-Nella cartella `dashboards/` trovi file completi pronti all'uso:
-- `dashboards/candy_washer_dryer_card.yaml`: Scheda completa per Lavasciuga.
-- `dashboards/candy_dishwasher_card.yaml`: Scheda completa per Lavastoviglie.
-- `dashboards/candy_complete_view.yaml`: Intera vista con grafici storici, badges e automazioni.
+### Animazioni Fisiche e Grafica Dinamica
+
+La card include un motore grafico CSS3/SVG con fisica calibrata su ciascun programma e fase:
+
+* **Lavasciuga e Lavatrice**:
+  * 🧺 **Programmi Lana & Delicati**: Movimento "Culla" pendolare lento (*cradle rocking*) con acqua calma e oscillazioni dolci per proteggere le fibre.
+  * 🫧 **Cotone / Misti / Sintetici / Eco**: Rotazione continua di lavaggio con onde d'acqua dinamiche e strato di schiuma a bolle fluttuanti.
+  * ⚡ **Programmi Rapidi (14', 30', 44', 59')**: Lavaggio energico ad alta frequenza e turbolenza potenziata.
+  * 💧 **Fase Risciacquo**: Livello dell'acqua alto e trasparente azzurro-cristallino con spruzzi profondi.
+  * 🌪️ **Fase Centrifuga**: Rotazione centrifuga ultra-rapida con effetto blur radiale e velocità sincronizzata ai reali **RPM** impostati (da 400 a 1600 giri/min).
+  * 🔥 **Fase Asciugatura (Lana, Armadio, Stiro, Extra)**: Acqua scaricata, rotazione reversibile antipiega lenta, **resistenza termica radiante a incandescenza** (bagliore pulsante ambra/rosso all'interno del cestello) e colonne di vapore caldo di condensazione.
+  * 💨 **Programmi Trattamento Vapore**: Pennacchi di vapore bianco-azzurro caldo che risalgono dal fondo dell'oblò.
+  * 🔒 **Spia LED Oblò**: Indicatore luminoso di sicurezza (rosso = bloccato, verde = apribile).
+
+* **Lavastoviglie Candy Brava**:
+  * 🚀 **Intensivo 75°C / Igienizzante**: Bracci irroratori rotanti contrapposti veloci, getti incrociati ad alta pressione e vapori termici intensi.
+  * 🌿 **Eco 45°C**: Rotazione armoniosa a basso consumo con soffuso bagliore verde smeraldo.
+  * 🍷 **Delicato & Cristalli**: Micro-nebulizzazione soffice a bassa pressione per calici e porcellane delicate.
+  * ♨️ **Fase Asciugatura / Extra Dry**: Bracci fermi, barra riscaldante inferiore incandescente e risalita del calore tra i cestelli.
+  * 🚪 **Apertura Smart Door**: Animazione dello sportello semiaperto con fuoriuscita dei vapori residui a fine lavaggio.
+  * 🚨 **Indicatori Spie Sale e Brillantante**: LED di allarme pulsanti dedicati sul cruscotto digitale.
+
+---
 
 #### Esempio Scheda Nativa Stack Lavasciuga:
 ```yaml
