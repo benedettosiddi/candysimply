@@ -9,6 +9,7 @@ Elimina completamente la dipendenza dall'app ufficiale *simply-Fi* e dai suoi in
 ## Caratteristiche Principali
 
 * **100% Locale e Senza Cloud**: Tutte le comunicazioni avvengono via HTTP direttamente tra Home Assistant e l'indirizzo IP locale dell'elettrodomestico sulla porta 80.
+* **Autodiscovery Intelligente (Zero Configurazione IP)**: Rilevamento automatico degli elettrodomestici Candy/Hoover presenti sulla rete tramite **ZeroConf / mDNS**, **DHCP Sniffer**, **SSDP** e scanner di sottorete proattivo: Home Assistant li trova da solo e propone la configurazione con 1 click senza dover cercare manualmente gli indirizzi IP!
 * **Supporto Completo per Lavasciuga e Lavastoviglie**:
   * **Lavasciuga**: Gestione completa di programmi di lavaggio, programmi combinati lava & asciuga, solo asciugatura, controllo temperatura, giri di centrifuga, vapore e opzioni speciali.
   * **Lavastoviglie**: Gestione di tutti i cicli (inclusi intensivo, eco, zoom, igienizzante, cristalli, autopulizia), mezzo carico, pastiglie 3-in-1, asciugatura extra e apertura automatica sportello.

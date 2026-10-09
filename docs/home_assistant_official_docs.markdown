@@ -37,7 +37,20 @@ Physical Safety Notice: To accept remote cycle start and configuration commands 
 - **Washing Machines (Lavatrici)**: Monitoring and cycle selection across all programs and options.
 - **Dishwashers (Lavastoviglie)**: Program selection, options (half load, 3-in-1 tablets, extra dry, automatic door opening), and salt/rinse-aid status.
 
-## Configuration
+## Autodiscovery (Zero-Configuration)
+
+Home Assistant will automatically detect Candy and Hoover appliances connected to your local network using:
+- **ZeroConf / mDNS**: Broadcasts from module hostnames (`CANDY*`, `HOOVER*`, `*simplyfi*`).
+- **DHCP Discovery**: Network lease sniffing matching vendor hostnames and MAC address OUI prefixes.
+- **SSDP / UPnP**: Device announcements from Candy Hoover Group.
+- **Active Subnet Probing**: Fast concurrent local network scan during setup.
+
+When a device is discovered, a notification will appear on your Home Assistant dashboard:
+> **"Discovered: Candy Simply-Fi"** -> Click **Configure** to finish setup in one click without manually looking up the IP address!
+
+If your router reassigns a new DHCP IP address to the appliance, Home Assistant will automatically track and update the IP address in the background without breaking your entities.
+
+## Manual Configuration
 
 {% include integrations/config_flow.md %}
 
@@ -45,11 +58,8 @@ Physical Safety Notice: To accept remote cycle start and configuration commands 
 2. Go to **Settings** > **Devices & Services**.
 3. In the bottom right corner, select **Add Integration**.
 4. Search for **Candy Simply-Fi Local** and select it.
-5. Follow the on-screen configuration wizard:
-   - **IP Address**: Enter the local IP address of your appliance (e.g., `192.168.1.50`).
-   - **Appliance Type**: Choose between *Washer-Dryer*, *Washing Machine*, *Dishwasher*, or *Auto Detect*.
-   - **Encryption Key**: Enter your 16-character key, or leave blank to enable auto-detection.
-   - **Use Encryption**: Enable if your model uses XOR payload encryption.
+5. Select a discovered appliance from the list, or enter the local IP address manually.
+6. Encryption key and appliance type are automatically detected.
 
 ## Entities
 

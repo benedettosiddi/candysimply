@@ -66,11 +66,22 @@ Questo metodo utilizza lo strumento incluso `tools/candy_cli.py` per inviare dir
 
 ---
 
-## 3. Metodo B: Elettrodomestico Già Connesso al Wi-Fi
+---
 
-Se l'elettrodomestico era già stato associato in precedenza (o se hai completato la procedura iniziale con l'app Simply-Fi):
+## 3. Metodo B: Elettrodomestico Già Connesso al Wi-Fi (Autodiscovery Zero-Configuration)
 
-1. Trova l'indirizzo IP locale assegnato all'elettrodomestico (es. `192.168.1.85`). Puoi vederlo dall'elenco dispositivi connessi del tuo router.
+Se l'elettrodomestico è già connesso alla rete Wi-Fi di casa (perché precedentemente associato o configurato):
+
+> [!TIP]
+> **NUOVO: Rilevamento Automatico (Non serve cercare l'IP a mano!)**
+> L'integrazione dispone di **Autodiscovery nativo** a triplo protocollo (**ZeroConf / mDNS, DHCP Sniffer, SSDP**) e **scanner proattivo di sottorete LAN**:
+> 1. Quando apri Home Assistant, l'integrazione rileva automaticamente la presenza dell'elettrodomestico e fa comparire la notifica:
+>    *"Nuovo dispositivo scoperto: Candy Simply-Fi (192.168.1.X) - Configura"*.
+> 2. Se apri la schermata di configurazione manuale, troverai già un menu a tendina con gli elettrodomestici Candy rilevati sulla tua rete!
+> 3. Se il tuo router dovesse cambiare IP all'elettrodomestico, l'integrazione aggiornerà l'IP in automatico in background senza bloccare le entità.
+
+Se invece preferisci fare un controllo diagnostico manuale da riga di comando:
+1. Trova l'indirizzo IP locale assegnato all'elettrodomestico dal tuo router (es. `192.168.1.85`).
 2. Esegui il test diagnostico e recupero chiave:
    ```bash
    python tools/candy_cli.py getkey 192.168.1.85
@@ -118,21 +129,22 @@ $$\text{Chiave} = \text{TestoCifrato} \oplus \text{TestoInChiaroNoto}$$
 permette di calcolare con precisione assoluta la chiave crittografica in meno di 1 secondo!
 
 **La nostra integrazione Home Assistant include questo algoritmo all'interno del Config Flow**:
-* Durante la configurazione in Home Assistant, puoi semplicemente inserire l'IP e **lasciare vuoto il campo della chiave**.
+* Durante la configurazione in Home Assistant, puoi semplicemente lasciare vuoto il campo della chiave.
 * L'integrazione interrogherà la macchina, calcolerà la chiave al primo tentativo e la memorizzerà automaticamente.
 
 ---
 
-## 7. Aggiunta in Home Assistant
+## 7. Aggiunta in Home Assistant (Procedura con Autodiscovery)
 
 1. Copia la cartella `custom_components/candy_simplyfi` all'interno della cartella `custom_components` del tuo Home Assistant (es. `/config/custom_components/candy_simplyfi`).
 2. Riavvia Home Assistant.
-3. Vai su **Impostazioni** -> **Dispositivi e Servizi** -> **Aggiungi Integrazione**.
-4. Cerca **Candy Simply-Fi Locale**.
-5. Inserisci l'**Indirizzo IP** dell'elettrodomestico.
-6. Seleziona la tipologia (Lavasciuga, Lavastoviglie, Lavatrice o Rilevamento Automatico).
-7. Lascia la chiave vuota se desideri il calcolo automatico, oppure incollala se l'hai già estratta con `candy_cli.py`.
-8. Clicca su **Invia**. Il dispositivo verrà aggiunto con tutti i sensori, interruttori e selettori di programmi!
+3. **Se l'elettrodomestico è connesso alla rete**: Home Assistant ti mostrerà direttamente una notifica di **dispositivo scoperto** sulla dashboard di benvenuto! Clicca semplicemente su **Configura**.
+4. Se procedi manualmente:
+   - Vai su **Impostazioni** -> **Dispositivi e Servizi** -> **Aggiungi Integrazione**.
+   - Cerca **Candy Simply-Fi Locale**.
+   - Seleziona l'elettrodomestico dall'elenco rilevato automaticamente (oppure inserisci l'IP se la rete è su VLAN separata).
+   - Lascia la chiave vuota se desideri il calcolo automatico.
+   - Clicca su **Invia**. Il dispositivo verrà aggiunto con tutti i sensori, interruttori e selettori di programmi!
 
 ---
 

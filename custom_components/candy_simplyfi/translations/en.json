@@ -3,22 +3,39 @@
     "step": {
       "user": {
         "title": "Candy Simply-Fi Local",
-        "description": "Configure 100% local connection to your Candy or Hoover Simply-Fi appliance.",
+        "description": "Select an automatically discovered Candy or Hoover appliance on your local network, or choose manual IP address entry.",
+        "data": {
+          "selected_device": "Discovered appliance on network"
+        }
+      },
+      "manual": {
+        "title": "Manual IP Configuration",
+        "description": "Enter the IP address of your Candy or Hoover appliance. If communication is encrypted, the key will be calculated automatically.",
         "data": {
           "ip_address": "Local IP Address",
           "key": "Encryption Key (16 characters - optional if auto-detected)",
           "auto_detect_key": "Automatically detect and recover XOR key",
           "appliance_type": "Appliance Type"
         }
+      },
+      "discovery_confirm": {
+        "title": "Confirm Discovered Appliance",
+        "description": "A Candy Simply-Fi appliance ({name}) was automatically discovered at IP {ip}. Confirm parameters to add it:",
+        "data": {
+          "key": "Encryption Key (optional if auto-detected)",
+          "auto_detect_key": "Automatically detect and recover XOR key",
+          "appliance_type": "Appliance Type"
+        }
       }
     },
     "error": {
-      "cannot_connect": "Unable to connect to the appliance. Please check IP and power.",
-      "invalid_auth": "Invalid encryption key or could not decrypt appliance response.",
-      "unknown": "Unexpected error while connecting."
+      "cannot_connect": "Unable to connect to the appliance. Please check IP address and verify it is powered on.",
+      "invalid_auth": "Invalid encryption key or unable to decrypt appliance response.",
+      "unknown": "Unexpected error while connecting to appliance."
     },
     "abort": {
-      "already_configured": "This appliance is already configured in Home Assistant."
+      "already_configured": "This appliance is already configured in Home Assistant.",
+      "cannot_connect": "Could not contact discovered IP address."
     }
   },
   "options": {

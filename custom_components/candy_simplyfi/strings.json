@@ -3,22 +3,39 @@
     "step": {
       "user": {
         "title": "Candy Simply-Fi Locale",
-        "description": "Inserisci l'indirizzo IP del tuo elettrodomestico Candy o Hoover. Se la comunicazione è crittografata, la chiave verrà tentata di essere calcolata automaticamente tramite attacco a testo noto.",
+        "description": "Seleziona un elettrodomestico Candy o Hoover rilevato automaticamente sulla tua rete Wi-Fi, oppure scegli l'inserimento manuale dell'IP.",
+        "data": {
+          "selected_device": "Elettrodomestico rilevato nella rete"
+        }
+      },
+      "manual": {
+        "title": "Configurazione Manuale IP",
+        "description": "Inserisci l'indirizzo IP del tuo elettrodomestico Candy o Hoover. Se la comunicazione è crittografata, la chiave verrà tentata di essere calcolata automaticamente.",
         "data": {
           "ip_address": "Indirizzo IP locale",
           "key": "Chiave di crittografia (16 caratteri - opzionale se auto-rilevata)",
           "auto_detect_key": "Rileva e recupera automaticamente la chiave XOR",
           "appliance_type": "Tipologia Elettrodomestico"
         }
+      },
+      "discovery_confirm": {
+        "title": "Conferma Elettrodomestico Rilevato",
+        "description": "È stato rilevato automaticamente un elettrodomestico Candy Simply-Fi ({name}) all'indirizzo IP {ip}. Conferma i parametri per aggiungerlo:",
+        "data": {
+          "key": "Chiave di crittografia (opzionale se auto-rilevata)",
+          "auto_detect_key": "Rileva e recupera automaticamente la chiave XOR",
+          "appliance_type": "Tipologia Elettrodomestico"
+        }
       }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi all'elettrodomestico. Verifica che l'IP sia corretto e acceso.",
+      "cannot_connect": "Impossibile connettersi all'elettrodomestico. Verifica che l'IP sia corretto e il dispositivo sia acceso.",
       "invalid_auth": "Chiave di crittografia errata o impossibile decifrare la risposta dell'elettrodomestico.",
       "unknown": "Errore imprevisto durante la connessione."
     },
     "abort": {
-      "already_configured": "Questo dispositivo è già configurato in Home Assistant."
+      "already_configured": "Questo dispositivo è già configurato in Home Assistant.",
+      "cannot_connect": "Impossibile contattare l'indirizzo IP scoperto."
     }
   },
   "options": {
