@@ -75,12 +75,48 @@ class CandyCard extends HTMLElement {
 
     const patternList = Array.isArray(patterns) ? patterns : [patterns];
     const prefix = (this._config.entity_prefix || '').toLowerCase();
+    const isDishwasher = this._config.device_type === 'dishwasher';
 
+    const isMatchForAppliance = (key) => {
+      const lower = key.toLowerCase();
+      if (isDishwasher) {
+        if (lower.includes('lavasciuga') || lower.includes('lavatrice') || lower.includes('_washer') || lower.includes('_wd')) {
+          return false;
+        }
+      } else {
+        if (lower.includes('lavastoviglie') || lower.includes('dishwasher') || lower.includes('_dw') || lower.includes('statodwash')) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    // 1. Explicit prefix matching
+    if (prefix) {
+      for (const key of Object.keys(states)) {
+        if (domain && !key.startsWith(domain + '.')) continue;
+        const lower = key.toLowerCase();
+        if (lower.includes(prefix)) {
+          for (const p of patternList) {
+            if ((p === 'temp' || p === '_temp') && lower.includes('tempo')) continue;
+            if (lower.includes(p.toLowerCase())) {
+              return { id: key, state: states[key] };
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Appliance-aware Candy entity matching
     for (const key of Object.keys(states)) {
       if (domain && !key.startsWith(domain + '.')) continue;
+      if (!isMatchForAppliance(key)) continue;
+
       const lower = key.toLowerCase();
-      if (prefix && lower.includes(prefix)) {
+      if (lower.includes('candy') || lower.includes('simplyfi') || lower.includes('simply_fi') ||
+          lower.includes('lavatrice') || lower.includes('lavasciuga') || lower.includes('lavastoviglie')) {
         for (const p of patternList) {
+          if ((p === 'temp' || p === '_temp') && lower.includes('tempo')) continue;
           if (lower.includes(p.toLowerCase())) {
             return { id: key, state: states[key] };
           }
@@ -88,15 +124,15 @@ class CandyCard extends HTMLElement {
       }
     }
 
+    // 3. Fallback matching
     for (const key of Object.keys(states)) {
       if (domain && !key.startsWith(domain + '.')) continue;
+      if (!isMatchForAppliance(key)) continue;
       const lower = key.toLowerCase();
-      if (lower.includes('candy') || lower.includes('simplyfi') || lower.includes('simply_fi') ||
-          lower.includes('lavatrice') || lower.includes('lavasciuga') || lower.includes('lavastoviglie')) {
-        for (const p of patternList) {
-          if (lower.includes(p.toLowerCase())) {
-            return { id: key, state: states[key] };
-          }
+      for (const p of patternList) {
+        if ((p === 'temp' || p === '_temp') && lower.includes('tempo')) continue;
+        if (lower.includes(p.toLowerCase())) {
+          return { id: key, state: states[key] };
         }
       }
     }
@@ -108,32 +144,32 @@ class CandyCard extends HTMLElement {
     const isDishwasher = this._config.device_type === 'dishwasher';
 
     return {
-      status: this._findEntity(['stato', 'status', 'machmd', 'statodwash'], 'sensor'),
-      program: this._findEntity(['programma', 'program', 'pr_nome'], 'sensor'),
-      remainingTime: this._findEntity(['tempo_rimanente', 'remaining_time', 'time_remaining'], 'sensor'),
-      errorCode: this._findEntity(['errore', 'error_code', 'error'], 'sensor'),
-      phase: !isDishwasher ? this._findEntity(['fase', 'program_phase', 'phase'], 'sensor') : null,
-      temp: !isDishwasher ? this._findEntity(['temperatura', 'temperature', 'temp'], 'sensor') : null,
+      status: this._findEntity(isDishwasher ? ['stato_dwash', 'statodwash', 'stato_elettrodomestico', 'stato', 'status'] : ['stato_elettrodomestico', 'stato', 'status', 'machmd'], 'sensor'),
+      program: this._findEntity(['programma_attivo', 'programma', 'program', 'pr_nome'], 'sensor'),
+      remainingTime: this._findEntity(['tempo_rimanente', 'remaining_time', 'time_remaining', 'rem_time'], 'sensor'),
+      errorCode: this._findEntity(['codice_errore', 'errore', 'error_code', 'error'], 'sensor'),
+      phase: !isDishwasher ? this._findEntity(['fase_del_ciclo', 'fase', 'program_phase', 'phase'], 'sensor') : null,
+      temp: !isDishwasher ? this._findEntity(['temperatura', 'temperature', 'temp_lavaggio', '_temp'], 'sensor') : null,
       spin: !isDishwasher ? this._findEntity(['centrifuga', 'spin_speed', 'spin'], 'sensor') : null,
-      dry: !isDishwasher ? this._findEntity(['asciugatura', 'drying_level', 'dry_level'], 'sensor') : null,
+      dry: !isDishwasher ? this._findEntity(['asciugatura', 'drying_level', 'dry_level', 'dry_time'], 'sensor') : null,
 
-      running: this._findEntity(['in_funzione', 'running', 'is_running'], 'binary_sensor'),
-      doorLocked: !isDishwasher ? this._findEntity(['oblo_bloccato', 'door_locked'], 'binary_sensor') : null,
-      doorOpen: isDishwasher ? this._findEntity(['sportello_aperto', 'door_open'], 'binary_sensor') : null,
-      missSalt: isDishwasher ? this._findEntity(['mancanza_sale', 'missing_salt'], 'binary_sensor') : null,
-      missRinse: isDishwasher ? this._findEntity(['mancanza_brillantante', 'missing_rinse'], 'binary_sensor') : null,
+      running: this._findEntity(['in_funzione', 'is_running', 'running'], 'binary_sensor'),
+      doorLocked: !isDishwasher ? this._findEntity(['oblo_bloccato_sicurezza', 'oblo_bloccato', 'door_locked'], 'binary_sensor') : null,
+      doorOpen: isDishwasher ? this._findEntity(['sportello_aperto', 'door_open', 'apertura_sportello'], 'binary_sensor') : null,
+      missSalt: isDishwasher ? this._findEntity(['mancanza_sale_rigenerante', 'mancanza_sale', 'missing_salt', 'miss_salt'], 'binary_sensor') : null,
+      missRinse: isDishwasher ? this._findEntity(['mancanza_brillantante', 'missing_rinse_aid', 'missing_rinse', 'miss_rinse'], 'binary_sensor') : null,
       dryingActive: !isDishwasher ? this._findEntity(['fase_asciugatura_attiva', 'drying_active'], 'binary_sensor') : null,
       remoteControl: !isDishwasher ? this._findEntity(['controllo_remoto', 'remote_control'], 'binary_sensor') : null,
 
-      programSelect: this._findEntity(isDishwasher ? ['programma_lavastoviglie', 'program'] : ['programma_lavaggio', 'program'], 'select'),
+      programSelect: this._findEntity(isDishwasher ? ['programma_lavastoviglie', 'select_dishwasher_program', 'program'] : ['programma_lavaggio', 'program'], 'select'),
       tempSelect: !isDishwasher ? this._findEntity(['selezione_temperatura', 'temperature'], 'select') : null,
       spinSelect: !isDishwasher ? this._findEntity(['selezione_centrifuga', 'spin'], 'select') : null,
       drySelect: !isDishwasher ? this._findEntity(['selezione_asciugatura', 'drying'], 'select') : null,
 
-      startButton: this._findEntity(['avvia_programma', 'start_program', 'start'], 'button'),
+      startButton: this._findEntity(['avvia_programma_selezionato', 'avvia_programma', 'start_program', 'start'], 'button'),
       pauseButton: this._findEntity(['metti_in_pausa', 'pause'], 'button'),
-      stopButton: this._findEntity(['annulla_stop', 'stop_reset', 'stop'], 'button'),
-      buzzerButton: this._findEntity(['segnale_acustico', 'buzzer', 'beep'], 'button'),
+      stopButton: this._findEntity(['annulla_stop_reset', 'annulla_stop', 'stop_reset', 'stop'], 'button'),
+      buzzerButton: this._findEntity(['segnale_acustico_beep', 'segnale_acustico', 'buzzer', 'beep'], 'button'),
 
       prewashSwitch: !isDishwasher ? this._findEntity(['prelavaggio', 'opt1_prewash'], 'switch') : null,
       hygieneSwitch: !isDishwasher ? this._findEntity(['igiene', 'opt2_hygiene'], 'switch') : null,
@@ -141,10 +177,10 @@ class CandyCard extends HTMLElement {
       easyIronSwitch: !isDishwasher ? this._findEntity(['stiro_facile', 'opt4_easy_iron'], 'switch') : null,
       steamSwitch: !isDishwasher ? this._findEntity(['trattamento_vapore', 'opt7_steam'], 'switch') : null,
 
-      halfLoadSwitch: isDishwasher ? this._findEntity(['mezzo_carico', 'half_load'], 'switch') : null,
-      tabsSwitch: isDishwasher ? this._findEntity(['pastiglie', 'tabs_3in1', 'tabs'], 'switch') : null,
-      extraDrySwitch: isDishwasher ? this._findEntity(['asciugatura_extra', 'extra_dry'], 'switch') : null,
-      openDoorSwitch: isDishwasher ? this._findEntity(['apertura_automatica', 'open_door_opt'], 'switch') : null,
+      halfLoadSwitch: isDishwasher ? this._findEntity(['opzione_mezzo_carico', 'mezzo_carico', 'half_load'], 'switch') : null,
+      tabsSwitch: isDishwasher ? this._findEntity(['opzione_pastiglie_3_in_1', 'pastiglie', 'tabs_3in1', 'tabs'], 'switch') : null,
+      extraDrySwitch: isDishwasher ? this._findEntity(['opzione_asciugatura_extra', 'asciugatura_extra', 'extra_dry'], 'switch') : null,
+      openDoorSwitch: isDishwasher ? this._findEntity(['apertura_automatica_sportello', 'apertura_automatica', 'open_door_opt', 'open_door'], 'switch') : null,
     };
   }
 
@@ -173,13 +209,13 @@ class CandyCard extends HTMLElement {
    * per determinare il profilo fisico di animazione esatto.
    */
   _computeAnimationProfile(entities, isDishwasher) {
-    const statusVal = (entities.status?.state?.state || 'Standby').toLowerCase();
-    const progVal = (entities.program?.state?.state || '').toLowerCase();
-    const phaseVal = (entities.phase?.state?.state || '').toLowerCase();
-    const tempVal = parseInt(entities.temp?.state?.state || '40', 10) || 40;
+    const rawTempState = String(entities.temp?.state?.state || '');
+    const parsedTemp = (!rawTempState.toLowerCase().includes('min') && !rawTempState.toLowerCase().includes('tempo')) ? parseInt(rawTempState, 10) : NaN;
+    const tempVal = !isNaN(parsedTemp) ? parsedTemp : 40;
     const spinVal = parseInt(entities.spin?.state?.state || '1000', 10) || 1000;
     const isRunning = entities.running?.state?.state === 'on' ||
-                      statusVal.includes('funzione') || statusVal === '2';
+                      statusVal.includes('funzione') || statusVal === '2' ||
+                      (phaseVal && !phaseVal.includes('non avviato') && !phaseVal.includes('terminato') && phaseVal !== '0' && phaseVal !== '6');
     const isPaused = statusVal.includes('pausa') || statusVal === '3';
     const isFinished = statusVal.includes('terminato') || statusVal === '7' || statusVal === '5';
     const doorState = entities.doorLocked?.state?.state;
@@ -476,10 +512,30 @@ class CandyCard extends HTMLElement {
     // 4. Aggiornamento Parametri Washer (Chip)
     if (!isDishwasher) {
       const chipTemp = this.shadowRoot.querySelector('.chip-temp .val');
-      if (chipTemp) chipTemp.textContent = tempVal !== '--' && tempVal !== '0' ? `${tempVal}°C` : 'Freddo';
+      if (chipTemp) {
+        const rawTemp = String(entities.temp?.state?.state || '');
+        const numTemp = parseInt(rawTemp, 10);
+        if (!isNaN(numTemp) && !rawTemp.toLowerCase().includes('min') && !rawTemp.toLowerCase().includes('tempo') && numTemp > 0) {
+          chipTemp.textContent = `${numTemp}°C`;
+        } else if (rawTemp === '0' || rawTemp.toLowerCase().includes('freddo')) {
+          chipTemp.textContent = 'Freddo';
+        } else {
+          chipTemp.textContent = '--';
+        }
+      }
 
       const chipSpin = this.shadowRoot.querySelector('.chip-spin .val');
-      if (chipSpin) chipSpin.textContent = spinVal !== '--' && spinVal !== '0' ? `${spinVal} rpm` : 'No centrifuga';
+      if (chipSpin) {
+        const rawSpin = String(entities.spin?.state?.state || '');
+        const numSpin = parseInt(rawSpin, 10);
+        if (!isNaN(numSpin) && numSpin > 0) {
+          chipSpin.textContent = `${numSpin} rpm`;
+        } else if (rawSpin === '0') {
+          chipSpin.textContent = 'No centrifuga';
+        } else {
+          chipSpin.textContent = '--';
+        }
+      }
 
       const chipDry = this.shadowRoot.querySelector('.chip-dry .val');
       if (chipDry) {
@@ -841,14 +897,24 @@ class CandyCard extends HTMLElement {
         }
 
         /* ANIMAZIONI DI ROTAZIONE SPECIFICHE PER PROGRAMMA */
-        /* 1. Lavaggio Normale / Eco / Sintetici */
-        .mode-wash.is-running .drum-inner,
-        .mode-prewash.is-running .drum-inner {
+        /* Baseline running animation: garantisce sempre rotazione cestello e onde acqua durante qualunque fase attiva */
+        .appliance-visual.is-running .drum-inner {
           animation: spin-smooth var(--spin-time, 3.2s) linear infinite;
         }
-        .mode-wash.is-running .water-wave,
-        .mode-prewash.is-running .water-wave {
+        .appliance-visual.is-running .water-wave {
           animation: slosh-normal 2.2s ease-in-out infinite alternate;
+        }
+
+        /* 1. Lavaggio Normale / Risciacquo / Eco / Sintetici */
+        .mode-wash.is-running .drum-inner,
+        .mode-rinse.is-running .drum-inner,
+        .mode-prewash.is-running .drum-inner {
+          animation: spin-smooth var(--spin-time, 3.0s) linear infinite;
+        }
+        .mode-wash.is-running .water-wave,
+        .mode-rinse.is-running .water-wave,
+        .mode-prewash.is-running .water-wave {
+          animation: slosh-normal 2.0s ease-in-out infinite alternate;
         }
 
         /* 2. Programmi Rapidi (14', 30', 44', 59') */
@@ -1663,4 +1729,4 @@ if (!window.customCards.some(card => card.type === 'candy-card')) {
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.1.0 Animazioni Programmi Attive ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.0 Animazioni Programmi & Riconoscimento Entità Perfezionati ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');

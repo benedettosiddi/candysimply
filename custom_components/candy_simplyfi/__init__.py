@@ -135,6 +135,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initial data refresh
     await coordinator.async_config_entry_first_refresh()
 
+    # Persist auto-discovered key and detected appliance_type to entry data
+    entry_updates = {}
+    if client.key and client.key != entry.data.get(CONF_KEY):
+        entry_updates[CONF_KEY] = client.key
+        entry_updates[CONF_ENCRYPTED] = True
+    if coordinator.appliance_type != entry.data.get(CONF_APPLIANCE_TYPE) and coordinator.appliance_type != "auto":
+        entry_updates[CONF_APPLIANCE_TYPE] = coordinator.appliance_type
+
+    if entry_updates:
+        new_data = {**entry.data, **entry_updates}
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        _LOGGER.info("Persisted Candy entry updates for %s: %s", client.host, entry_updates)
+
     # Clean up stale entities in case appliance_type changed
     try:
         from homeassistant.helpers import entity_registry as er
