@@ -456,7 +456,9 @@ class CandyCard extends HTMLElement {
     // 2. Display Digitale e Descrizione Ciclo
     const timerEl = this.shadowRoot.querySelector('.digital-timer');
     if (timerEl) {
-      timerEl.textContent = profile.isRunning || profile.isPaused ? timeVal : (profile.isFinished ? 'FINE' : '00:00');
+      timerEl.textContent = profile.isRunning || profile.isPaused
+        ? timeVal
+        : (profile.isFinished ? 'FINE' : (timeVal && timeVal !== 'Completato / Pronto' && timeVal !== 'N/D' ? timeVal : '00:00'));
     }
 
     const progEl = this.shadowRoot.querySelector('.current-program-name');
