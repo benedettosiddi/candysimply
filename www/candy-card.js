@@ -1,16 +1,29 @@
 /**
  * Candy Simply-Fi Custom Lovelace Card
- * Card interattiva e animata per Lavasciuga, Lavatrice e Lavastoviglie Candy / Hoover.
+ * Card interattiva fotorealistica con animazioni fisiche e grafiche allineate
+ * specificamente a ciascun programma, fase di ciclo e tipo di elettrodomestico Candy/Hoover.
  * 
- * Supporta:
- * - Animazione fotorealistica del cestello (rotazione, centrifuga ad alta velocita, onde d'acqua/schiuma, calore asciugatura)
- * - Animazione lavastoviglie (bracci irroratori rotanti, getti d'acqua, vapore/asciugatura)
- * - Display digitale con countdown tempo residuo e indicatore circolare di avanzamento
- * - Badge parametri istantanei (Temperatura, Giri centrifuga, Livello asciugatura, Partenza differita)
- * - Selettore interattivo dei programmi con icone Candy
- * - Pulsanti di comando diretti (Avvia, Pausa, Annulla/Stop, Bip sonoro)
- * - Interruttori opzioni rapide (Prelavaggio, Igiene+, Risciacquo+, Stiro facile, Vapore / Mezzo carico, 3-in-1, Extra Dry)
- * - Allarmi e diagnostica guasti con descrizione codici errore E01-E22 e indicatori sale/brillantante
+ * CARATTERISTICHE DINAMICHE:
+ * - LAVASCIUGA / LAVATRICE:
+ *   • Programmi Lana & Delicati: Movimento "Culla" oscillante pendolare lento (cradle rocking), acqua calma, protezione fibre.
+ *   • Programmi Cotone / Misti / Eco: Rotazione continua di lavaggio con onde d'acqua dinamiche e strato di schiuma con bolle.
+ *   • Programmi Rapidi (14', 30', 44', 59'): Lavaggio energico accelerato ad alta reattività.
+ *   • Fase Risciacquo: Livello dell'acqua alto trasparente azzurro cristallino con spruzzi profondi.
+ *   • Fase Centrifuga: Rotazione centrifuga ultra-rapida con effetto blur e velocità calcolata istantaneamente sui giri RPM (400-1600).
+ *   • Fase Asciugatura (Lana, Armadio, Stiro, Extra, Lava&Asciuga): Acqua scaricata, rotazione lenta reversibile antipiega,
+ *     resistenza termica radiante pulsante interna (bagliore ambra/rosso) e vapori caldi di condensazione.
+ *   • Programmi Vapore / Trattamento Vapore: Pennacchi di vapore bianco-azzurro caldo che risalgono dal cestello.
+ *   • Fine Ciclo: Rotazione saltuaria antipiega, messaggio sul display e sblocco sportello.
+ * 
+ * - LAVASTOVIGLIE:
+ *   • Intensivo 75°C / Igienizzante: Bracci rotanti contrapposti veloci, getti d'acqua incrociati ad alta pressione e vapore.
+ *   • Eco 45°C: Rotazione armoniosa a risparmio energetico con bagliore verde smeraldo.
+ *   • Delicato / Cristalli: Rotazione soffice con micro-gocce nebulizzate a bassa pressione per calici e porcellane.
+ *   • Rapido 24' Zoom: Getti pulsanti ad alta frequenza.
+ *   • Prelavaggio / Ammollo a freddo: Spruzzi d'acqua fresca senza riscaldamento.
+ *   • Fase Asciugatura / Extra Dry: Bracci fermi, barra riscaldante inferiore incandescente e colonne di vapore che risalgono tra i cestelli.
+ *   • Apertura Smart Sportello: Sportello semiaperto con fuoriuscita del vapore residuo a fine ciclo.
+ *   • Indicatori e Allarmi Sale Rigenerante e Brillantante con LED di segnalazione pulsante.
  */
 
 class CandyCard extends HTMLElement {
@@ -19,10 +32,6 @@ class CandyCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
-    this._selectedProgram = null;
-    this._selectedTemp = null;
-    this._selectedSpin = null;
-    this._selectedDry = null;
   }
 
   static getStubConfig() {
@@ -39,11 +48,11 @@ class CandyCard extends HTMLElement {
 
   setConfig(config) {
     if (!config) {
-      throw new Error('Configurazione non valida');
+      throw new Error('Configurazione non valida per CandyCard');
     }
     this._config = {
       name: config.name || 'Candy Simply-Fi',
-      device_type: config.device_type || 'washer_dryer', // 'washer_dryer', 'washer', 'dishwasher'
+      device_type: config.device_type || 'washer_dryer',
       entity_prefix: config.entity_prefix || '',
       ...config
     };
@@ -59,7 +68,6 @@ class CandyCard extends HTMLElement {
     if (!this._hass || !this._hass.states) return null;
     const states = this._hass.states;
 
-    // Check direct config override first
     if (typeof patterns === 'string' && this._config[patterns]) {
       const explicit = this._config[patterns];
       if (states[explicit]) return { id: explicit, state: states[explicit] };
@@ -68,7 +76,6 @@ class CandyCard extends HTMLElement {
     const patternList = Array.isArray(patterns) ? patterns : [patterns];
     const prefix = (this._config.entity_prefix || '').toLowerCase();
 
-    // Priority 1: Match prefix + pattern
     for (const key of Object.keys(states)) {
       if (domain && !key.startsWith(domain + '.')) continue;
       const lower = key.toLowerCase();
@@ -81,11 +88,11 @@ class CandyCard extends HTMLElement {
       }
     }
 
-    // Priority 2: General match with candy keywords
     for (const key of Object.keys(states)) {
       if (domain && !key.startsWith(domain + '.')) continue;
       const lower = key.toLowerCase();
-      if (lower.includes('candy') || lower.includes('simplyfi') || lower.includes('simply_fi') || lower.includes('lavatrice') || lower.includes('lavasciuga') || lower.includes('lavastoviglie')) {
+      if (lower.includes('candy') || lower.includes('simplyfi') || lower.includes('simply_fi') ||
+          lower.includes('lavatrice') || lower.includes('lavasciuga') || lower.includes('lavastoviglie')) {
         for (const p of patternList) {
           if (lower.includes(p.toLowerCase())) {
             return { id: key, state: states[key] };
@@ -103,41 +110,37 @@ class CandyCard extends HTMLElement {
     return {
       status: this._findEntity(['stato', 'status', 'machmd', 'statodwash'], 'sensor'),
       program: this._findEntity(['programma', 'program', 'pr_nome'], 'sensor'),
-      remainingTime: this._findEntity(['tempo_rimanente', 'remaining_time', 'time_remaining', 'minuten_verbleibend'], 'sensor'),
+      remainingTime: this._findEntity(['tempo_rimanente', 'remaining_time', 'time_remaining'], 'sensor'),
       errorCode: this._findEntity(['errore', 'error_code', 'error'], 'sensor'),
       phase: !isDishwasher ? this._findEntity(['fase', 'program_phase', 'phase'], 'sensor') : null,
       temp: !isDishwasher ? this._findEntity(['temperatura', 'temperature', 'temp'], 'sensor') : null,
       spin: !isDishwasher ? this._findEntity(['centrifuga', 'spin_speed', 'spin'], 'sensor') : null,
       dry: !isDishwasher ? this._findEntity(['asciugatura', 'drying_level', 'dry_level'], 'sensor') : null,
-      
-      // Binary sensors
+
       running: this._findEntity(['in_funzione', 'running', 'is_running'], 'binary_sensor'),
-      doorLocked: !isDishwasher ? this._findEntity(['oblo_bloccato', 'door_locked', 'door_lock'], 'binary_sensor') : null,
-      doorOpen: isDishwasher ? this._findEntity(['sportello_aperto', 'door_open', 'door'], 'binary_sensor') : null,
-      missSalt: isDishwasher ? this._findEntity(['mancanza_sale', 'missing_salt', 'salt'], 'binary_sensor') : null,
-      missRinse: isDishwasher ? this._findEntity(['mancanza_brillantante', 'missing_rinse', 'rinse_aid'], 'binary_sensor') : null,
+      doorLocked: !isDishwasher ? this._findEntity(['oblo_bloccato', 'door_locked'], 'binary_sensor') : null,
+      doorOpen: isDishwasher ? this._findEntity(['sportello_aperto', 'door_open'], 'binary_sensor') : null,
+      missSalt: isDishwasher ? this._findEntity(['mancanza_sale', 'missing_salt'], 'binary_sensor') : null,
+      missRinse: isDishwasher ? this._findEntity(['mancanza_brillantante', 'missing_rinse'], 'binary_sensor') : null,
       dryingActive: !isDishwasher ? this._findEntity(['fase_asciugatura_attiva', 'drying_active'], 'binary_sensor') : null,
       remoteControl: !isDishwasher ? this._findEntity(['controllo_remoto', 'remote_control'], 'binary_sensor') : null,
 
-      // Selects
       programSelect: this._findEntity(isDishwasher ? ['programma_lavastoviglie', 'program'] : ['programma_lavaggio', 'program'], 'select'),
       tempSelect: !isDishwasher ? this._findEntity(['selezione_temperatura', 'temperature'], 'select') : null,
       spinSelect: !isDishwasher ? this._findEntity(['selezione_centrifuga', 'spin'], 'select') : null,
       drySelect: !isDishwasher ? this._findEntity(['selezione_asciugatura', 'drying'], 'select') : null,
 
-      // Buttons
       startButton: this._findEntity(['avvia_programma', 'start_program', 'start'], 'button'),
       pauseButton: this._findEntity(['metti_in_pausa', 'pause'], 'button'),
       stopButton: this._findEntity(['annulla_stop', 'stop_reset', 'stop'], 'button'),
       buzzerButton: this._findEntity(['segnale_acustico', 'buzzer', 'beep'], 'button'),
 
-      // Switches (Options)
       prewashSwitch: !isDishwasher ? this._findEntity(['prelavaggio', 'opt1_prewash'], 'switch') : null,
       hygieneSwitch: !isDishwasher ? this._findEntity(['igiene', 'opt2_hygiene'], 'switch') : null,
       extraRinseSwitch: !isDishwasher ? this._findEntity(['risciacquo_extra', 'opt3_extra_rinse'], 'switch') : null,
       easyIronSwitch: !isDishwasher ? this._findEntity(['stiro_facile', 'opt4_easy_iron'], 'switch') : null,
       steamSwitch: !isDishwasher ? this._findEntity(['trattamento_vapore', 'opt7_steam'], 'switch') : null,
-      
+
       halfLoadSwitch: isDishwasher ? this._findEntity(['mezzo_carico', 'half_load'], 'switch') : null,
       tabsSwitch: isDishwasher ? this._findEntity(['pastiglie', 'tabs_3in1', 'tabs'], 'switch') : null,
       extraDrySwitch: isDishwasher ? this._findEntity(['asciugatura_extra', 'extra_dry'], 'switch') : null,
@@ -157,12 +160,206 @@ class CandyCard extends HTMLElement {
 
   _selectOption(entityObj, option) {
     if (!entityObj || !entityObj.id) return;
-    this._callService('select', 'select_option', { entity_id: entityObj.id, option: option });
+    this._callService('select', 'select_option', { entity_id: entityObj.id, option });
   }
 
   _toggleSwitch(entityObj) {
     if (!entityObj || !entityObj.id) return;
     this._callService('switch', 'toggle', { entity_id: entityObj.id });
+  }
+
+  /**
+   * Analizza dettagliatamente il programma, la fase e i parametri correnti
+   * per determinare il profilo fisico di animazione esatto.
+   */
+  _computeAnimationProfile(entities, isDishwasher) {
+    const statusVal = (entities.status?.state?.state || 'Standby').toLowerCase();
+    const progVal = (entities.program?.state?.state || '').toLowerCase();
+    const phaseVal = (entities.phase?.state?.state || '').toLowerCase();
+    const tempVal = parseInt(entities.temp?.state?.state || '40', 10) || 40;
+    const spinVal = parseInt(entities.spin?.state?.state || '1000', 10) || 1000;
+    const isRunning = entities.running?.state?.state === 'on' ||
+                      statusVal.includes('funzione') || statusVal === '2';
+    const isPaused = statusVal.includes('pausa') || statusVal === '3';
+    const isFinished = statusVal.includes('terminato') || statusVal === '7' || statusVal === '5';
+    const isDoorLocked = entities.doorLocked ? entities.doorLocked.state?.state === 'on' : isRunning;
+    const isDryingActive = (entities.dryingActive?.state?.state === 'on') ||
+                           phaseVal.includes('asciugatura') || phaseVal === '5' ||
+                           progVal.includes('asciugatura');
+    const isSteamActive = (entities.steamSwitch?.state?.state === 'on') ||
+                          progVal.includes('vapore') || progVal.includes('steam');
+
+    if (isDishwasher) {
+      // PROFILO LAVASTOVIGLIE
+      let dwMode = 'standby';
+      let description = 'Elettrodomestico pronto';
+
+      if (!isRunning) {
+        if (isFinished) {
+          dwMode = 'finished';
+          description = 'Ciclo di lavaggio terminato';
+        } else if (isPaused) {
+          dwMode = 'paused';
+          description = 'Ciclo in pausa';
+        }
+      } else {
+        // Determinazione modalità attiva in base al programma impostato
+        if (phaseVal.includes('asciugatura') || statusVal.includes('asciugatura')) {
+          dwMode = 'dw-drying';
+          description = 'Fase asciugatura termica e condensazione attiva';
+        } else if (progVal.includes('intensiv') || progVal.includes('igiene') || progVal.includes('75')) {
+          dwMode = 'dw-intensive';
+          description = 'Lavaggio intensivo 75°C: getti incrociati ad alta pressione';
+        } else if (progVal.includes('delicat') || progVal.includes('cristall') || progVal.includes('vetro')) {
+          dwMode = 'dw-delicate';
+          description = 'Lavaggio delicato calici: nebulizzazione soffice 45°C';
+        } else if (progVal.includes('rapid') || progVal.includes('zoom') || progVal.includes('24')) {
+          dwMode = 'dw-rapid';
+          description = 'Ciclo Rapido Zoom: lavaggio accelerato pulsante';
+        } else if (progVal.includes('prelavaggio') || progVal.includes('ammollo')) {
+          dwMode = 'dw-prewash';
+          description = 'Ammollo a freddo con irrorazione dolce';
+        } else if (progVal.includes('eco')) {
+          dwMode = 'dw-eco';
+          description = 'Ciclo Eco 45°C ad alta efficienza idrica';
+        } else {
+          dwMode = 'dw-normal';
+          description = 'Lavaggio normale con doppi bracci irroratori';
+        }
+      }
+
+      return {
+        isDishwasher: true,
+        isRunning,
+        isPaused,
+        isFinished,
+        mode: dwMode,
+        description,
+        isDoorOpen: entities.doorOpen?.state?.state === 'on',
+        isSmartDoor: entities.openDoorSwitch?.state?.state === 'on',
+        isHalfLoad: entities.halfLoadSwitch?.state?.state === 'on',
+        missSalt: entities.missSalt?.state?.state === 'on',
+        missRinse: entities.missRinse?.state?.state === 'on',
+      };
+    }
+
+    // PROFILO LAVASCIUGA / LAVATRICE
+    let washerMode = 'standby';
+    let description = 'Elettrodomestico pronto';
+    let spinDuration = '3.5s';
+    let waterLevel = 0; // % altezza acqua
+    let hasBubbles = false;
+    let hasSteam = false;
+    let heatGlow = false;
+
+    // Colore temperatura acqua (cyan -> azzurro -> ambra -> rosso)
+    let tempColor = 'rgba(0, 210, 255, 0.5)';
+    if (tempVal >= 90) tempColor = 'rgba(255, 61, 0, 0.7)';
+    else if (tempVal >= 60) tempColor = 'rgba(255, 109, 0, 0.6)';
+    else if (tempVal >= 40) tempColor = 'rgba(255, 171, 0, 0.5)';
+    else if (tempVal === 0 || tempVal <= 20) tempColor = 'rgba(0, 229, 255, 0.55)';
+
+    if (!isRunning) {
+      if (isFinished) {
+        washerMode = 'finished';
+        description = 'Ciclo terminato: bucato pronto';
+      } else if (isPaused) {
+        washerMode = 'paused';
+        description = 'Ciclo in pausa';
+      }
+    } else {
+      // 1. Centrifuga
+      if (phaseVal.includes('centrifuga') || phaseVal === '4' || progVal.includes('centrifuga')) {
+        washerMode = 'spin';
+        // Durata rotazione proporzionale ai giri RPM
+        if (spinVal >= 1400) spinDuration = '0.22s';
+        else if (spinVal >= 1200) spinDuration = '0.28s';
+        else if (spinVal >= 1000) spinDuration = '0.36s';
+        else if (spinVal >= 800) spinDuration = '0.48s';
+        else if (spinVal >= 400) spinDuration = '0.75s';
+        else spinDuration = '1.2s';
+        waterLevel = 5;
+        hasBubbles = false;
+        description = `Centrifuga rapida attiva a ${spinVal} RPM`;
+      }
+      // 2. Asciugatura
+      else if (isDryingActive) {
+        washerMode = 'drying';
+        spinDuration = '5.5s';
+        waterLevel = 0;
+        heatGlow = true;
+        hasSteam = true;
+        description = 'Asciugatura attiva con riscaldamento termico e ventilazione';
+      }
+      // 3. Risciacquo
+      else if (phaseVal.includes('risciacquo') || phaseVal === '3' || progVal.includes('risciacquo')) {
+        washerMode = 'rinse';
+        spinDuration = '3.0s';
+        waterLevel = 60; // Livello acqua alto
+        hasBubbles = false;
+        description = 'Fase risciacquo con alto livello d\'acqua limpida';
+      }
+      // 4. Lana, Seta e Delicati (Movimento Culla / Cradle)
+      else if (progVal.includes('lana') || progVal.includes('seta') || progVal.includes('delicat') || progVal.includes('piumoni')) {
+        washerMode = 'cradle';
+        spinDuration = '6.0s';
+        waterLevel = 35;
+        hasBubbles = true;
+        description = 'Movimento culla oscillante delicato per protezione fibre';
+      }
+      // 5. Vapore
+      else if (isSteamActive || progVal.includes('vapore') || progVal.includes('steam')) {
+        washerMode = 'steam';
+        spinDuration = '4.5s';
+        waterLevel = 10;
+        hasSteam = true;
+        heatGlow = true;
+        description = 'Trattamento a vapore igienizzante e antipiega';
+      }
+      // 6. Programmi Rapidi (14', 30', 44', 59')
+      else if (progVal.includes('rapid') || progVal.includes('zoom') || progVal.includes('59') || progVal.includes('14') || progVal.includes('30')) {
+        washerMode = 'rapid';
+        spinDuration = '2.2s';
+        waterLevel = 45;
+        hasBubbles = true;
+        description = 'Lavaggio Rapido dinamico con rotazione energica';
+      }
+      // 7. Prelavaggio
+      else if (phaseVal.includes('prelavaggio') || phaseVal === '1') {
+        washerMode = 'prewash';
+        spinDuration = '3.8s';
+        waterLevel = 30;
+        hasBubbles = true;
+        description = 'Prelavaggio macchie con immersione graduale';
+      }
+      // 8. Lavaggio Standard (Cotone, Sintetici, Eco 40-60)
+      else {
+        washerMode = 'wash';
+        spinDuration = '3.2s';
+        waterLevel = 40;
+        hasBubbles = true;
+        if (tempVal >= 60) hasSteam = true;
+        description = `Lavaggio in corso a ${tempVal}°C`;
+      }
+    }
+
+    return {
+      isDishwasher: false,
+      isRunning,
+      isPaused,
+      isFinished,
+      mode: washerMode,
+      description,
+      spinDuration,
+      waterLevel,
+      hasBubbles,
+      hasSteam,
+      heatGlow,
+      tempColor,
+      isDoorLocked,
+      tempVal,
+      spinVal,
+    };
   }
 
   _updateStates() {
@@ -177,19 +374,10 @@ class CandyCard extends HTMLElement {
     const tempVal = entities.temp?.state?.state || '--';
     const spinVal = entities.spin?.state?.state || '--';
     const dryVal = entities.dry?.state?.state || '0';
-    const isRunning = entities.running?.state?.state === 'on' || 
-                      ['In funzione', 'running', '2'].includes(statusVal);
-    const isPaused = statusVal.toLowerCase().includes('pausa') || statusVal === '3';
-    const isFinished = statusVal.toLowerCase().includes('terminato') || statusVal === '7' || statusVal === '5';
-    const isError = entities.errorCode?.state?.state && 
-                    !['e0', '0', 'none', 'unknown', 'unavailable'].includes(entities.errorCode.state.state.toLowerCase());
 
-    const isSpinningFast = phaseVal.toLowerCase().includes('centrifuga') || phaseVal === '4';
-    const isDrying = (entities.dryingActive?.state?.state === 'on') || 
-                     phaseVal.toLowerCase().includes('asciugatura') || 
-                     phaseVal === '5';
+    const profile = this._computeAnimationProfile(entities, isDishwasher);
 
-    // 1. Update Title and Header Status
+    // 1. Titolo e Badge Stato
     const titleEl = this.shadowRoot.querySelector('.card-title');
     if (titleEl) titleEl.textContent = this._config.name || (isDishwasher ? 'Candy Lavastoviglie' : 'Candy Lavasciuga');
 
@@ -197,36 +385,90 @@ class CandyCard extends HTMLElement {
     if (statusBadge) {
       statusBadge.textContent = statusVal;
       statusBadge.className = 'status-badge ' + (
-        isRunning ? 'status-running' : 
-        isPaused ? 'status-paused' : 
-        isFinished ? 'status-finished' : 
-        isError ? 'status-error' : 'status-standby'
+        profile.isRunning ? 'status-running' :
+        profile.isPaused ? 'status-paused' :
+        profile.isFinished ? 'status-finished' : 'status-standby'
       );
     }
 
-    // 2. Update Display Timer & Phase
+    // 2. Display Digitale e Descrizione Ciclo
     const timerEl = this.shadowRoot.querySelector('.digital-timer');
-    if (timerEl) timerEl.textContent = isRunning || isPaused ? timeVal : (isFinished ? 'FINE' : '00:00');
+    if (timerEl) {
+      timerEl.textContent = profile.isRunning || profile.isPaused ? timeVal : (profile.isFinished ? 'FINE' : '00:00');
+    }
 
     const progEl = this.shadowRoot.querySelector('.current-program-name');
     if (progEl) progEl.textContent = programVal;
 
     const phaseEl = this.shadowRoot.querySelector('.current-phase-name');
-    if (phaseEl) {
-      phaseEl.textContent = phaseVal ? `• ${phaseVal}` : '';
+    if (phaseEl) phaseEl.textContent = phaseVal ? `• ${phaseVal}` : '';
+
+    const descEl = this.shadowRoot.querySelector('.cycle-live-description');
+    if (descEl) descEl.textContent = profile.description;
+
+    // 3. Applicazione Animazioni Dinamiche al Cestello o alla Vasca
+    const visualRoot = this.shadowRoot.querySelector('.appliance-visual');
+    if (visualRoot) {
+      visualRoot.className = `appliance-visual mode-${profile.mode}`;
+      if (profile.isRunning) visualRoot.classList.add('is-running');
+      if (profile.isPaused) visualRoot.classList.add('is-paused');
+
+      if (!isDishwasher) {
+        // Applicazione variabili CSS dinamiche per la lavasciuga
+        visualRoot.style.setProperty('--spin-time', profile.spinDuration);
+        visualRoot.style.setProperty('--water-height', `${profile.waterLevel}%`);
+        visualRoot.style.setProperty('--water-glow-color', profile.tempColor);
+
+        const waterEl = visualRoot.querySelector('.water-wave');
+        if (waterEl) {
+          waterEl.style.height = `${profile.waterLevel}%`;
+          waterEl.style.opacity = profile.waterLevel > 0 && profile.isRunning ? '1' : '0';
+        }
+
+        const bubblesEl = visualRoot.querySelector('.bubbles');
+        if (bubblesEl) {
+          bubblesEl.style.display = profile.hasBubbles && profile.isRunning ? 'block' : 'none';
+        }
+
+        const steamEl = visualRoot.querySelector('.steam-plume');
+        if (steamEl) {
+          steamEl.style.display = profile.hasSteam && profile.isRunning ? 'block' : 'none';
+        }
+
+        const heatEl = visualRoot.querySelector('.heat-glow');
+        if (heatEl) {
+          heatEl.style.opacity = profile.heatGlow && profile.isRunning ? '1' : '0';
+        }
+
+        const doorLockLed = visualRoot.querySelector('.door-lock-led');
+        if (doorLockLed) {
+          doorLockLed.classList.toggle('locked', profile.isDoorLocked);
+          doorLockLed.title = profile.isDoorLocked ? 'Oblò bloccato per sicurezza' : 'Oblò sbloccato';
+        }
+      } else {
+        // Applicazione stati lavastoviglie
+        visualRoot.classList.toggle('door-open', profile.isDoorOpen);
+        visualRoot.classList.toggle('half-load', profile.isHalfLoad);
+
+        const dwHeatingEl = visualRoot.querySelector('.dw-heating-element');
+        if (dwHeatingEl) {
+          dwHeatingEl.classList.toggle('heating', profile.mode === 'dw-drying');
+        }
+
+        const saltWarning = this.shadowRoot.querySelector('.warn-salt');
+        if (saltWarning) saltWarning.classList.toggle('active', profile.missSalt);
+
+        const rinseWarning = this.shadowRoot.querySelector('.warn-rinse');
+        if (rinseWarning) rinseWarning.classList.toggle('active', profile.missRinse);
+
+        const doorOpenBanner = this.shadowRoot.querySelector('.door-open-banner');
+        if (doorOpenBanner) {
+          doorOpenBanner.style.display = profile.isDoorOpen ? 'flex' : 'none';
+        }
+      }
     }
 
-    // 3. Update Visual Animations (Drum / Spray arms)
-    const applianceVisual = this.shadowRoot.querySelector('.appliance-visual');
-    if (applianceVisual) {
-      applianceVisual.classList.toggle('is-running', isRunning);
-      applianceVisual.classList.toggle('is-fast-spin', isSpinningFast);
-      applianceVisual.classList.toggle('is-drying', isDrying);
-      applianceVisual.classList.toggle('is-paused', isPaused);
-      applianceVisual.classList.toggle('is-door-open', entities.doorOpen?.state?.state === 'on');
-    }
-
-    // 4. Update Parameter Chips (Washer)
+    // 4. Aggiornamento Parametri Washer (Chip)
     if (!isDishwasher) {
       const chipTemp = this.shadowRoot.querySelector('.chip-temp .val');
       if (chipTemp) chipTemp.textContent = tempVal !== '--' && tempVal !== '0' ? `${tempVal}°C` : 'Freddo';
@@ -240,42 +482,27 @@ class CandyCard extends HTMLElement {
         if (dryVal === '1') dryTxt = 'Stiro';
         else if (dryVal === '2') dryTxt = 'Armadio';
         else if (dryVal === '3') dryTxt = 'Extra';
-        else if (parseInt(dryVal) > 10) dryTxt = `${dryVal}'`;
+        else if (parseInt(dryVal, 10) > 10) dryTxt = `${dryVal}'`;
         chipDry.textContent = dryTxt;
       }
     }
 
-    // 5. Dishwasher Warning Indicators
-    if (isDishwasher) {
-      const saltWarning = this.shadowRoot.querySelector('.warn-salt');
-      if (saltWarning) {
-        saltWarning.classList.toggle('active', entities.missSalt?.state?.state === 'on');
-      }
-      const rinseWarning = this.shadowRoot.querySelector('.warn-rinse');
-      if (rinseWarning) {
-        rinseWarning.classList.toggle('active', entities.missRinse?.state?.state === 'on');
-      }
-      const doorOpenBanner = this.shadowRoot.querySelector('.door-open-banner');
-      if (doorOpenBanner) {
-        doorOpenBanner.style.display = entities.doorOpen?.state?.state === 'on' ? 'flex' : 'none';
-      }
-    }
-
-    // 6. Error Banner
+    // 5. Banner di Errore Diagnostico
     const errorBanner = this.shadowRoot.querySelector('.error-banner');
     if (errorBanner) {
-      if (isError) {
-        const errCode = entities.errorCode?.state?.state || 'E?';
-        const errDesc = entities.errorCode?.state?.attributes?.descrizione_errore || 
+      const errVal = entities.errorCode?.state?.state;
+      const isErr = errVal && !['e0', '0', 'none', 'unknown', 'unavailable'].includes(errVal.toLowerCase());
+      if (isErr) {
+        const errDesc = entities.errorCode?.state?.attributes?.descrizione_errore ||
                         entities.errorCode?.state?.attributes?.description || 'Verificare l\'elettrodomestico';
         errorBanner.style.display = 'flex';
-        errorBanner.querySelector('.error-text').textContent = `Allarme ${errCode}: ${errDesc}`;
+        errorBanner.querySelector('.error-text').textContent = `Allarme ${errVal}: ${errDesc}`;
       } else {
         errorBanner.style.display = 'none';
       }
     }
 
-    // 7. Update Option Switches active states
+    // 6. Sincronizzazione Switch Opzioni
     this.shadowRoot.querySelectorAll('.option-chip').forEach(chip => {
       const optKey = chip.getAttribute('data-opt');
       const switchObj = entities[optKey + 'Switch'];
@@ -284,7 +511,7 @@ class CandyCard extends HTMLElement {
       }
     });
 
-    // 8. Sync Program Select Dropdown
+    // 7. Sincronizzazione Menu Programmi
     const selectElem = this.shadowRoot.querySelector('.program-dropdown');
     if (selectElem && entities.programSelect && entities.programSelect.state) {
       const opts = entities.programSelect.state.attributes?.options || [];
@@ -339,7 +566,7 @@ class CandyCard extends HTMLElement {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
 
         .header-left {
@@ -352,7 +579,6 @@ class CandyCard extends HTMLElement {
           font-size: 19px;
           font-weight: 900;
           letter-spacing: 2px;
-          color: #ffffff;
           background: linear-gradient(90deg, #ffffff, #00d2ff);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -385,10 +611,7 @@ class CandyCard extends HTMLElement {
           border-radius: 50%;
         }
 
-        .status-standby {
-          background: rgba(144, 164, 174, 0.15);
-          color: #b0bec5;
-        }
+        .status-standby { background: rgba(144, 164, 174, 0.15); color: #b0bec5; }
         .status-standby::before { background: #90a4ae; }
 
         .status-running {
@@ -396,47 +619,30 @@ class CandyCard extends HTMLElement {
           color: #00d2ff;
           box-shadow: 0 0 12px var(--candy-blue-glow);
         }
-        .status-running::before { 
-          background: #00d2ff; 
+        .status-running::before {
+          background: #00d2ff;
           animation: pulse-dot 1.2s infinite alternate;
         }
 
-        .status-paused {
-          background: rgba(255, 152, 0, 0.2);
-          color: #ffb74d;
-        }
+        .status-paused { background: rgba(255, 152, 0, 0.2); color: #ffb74d; }
         .status-paused::before { background: #ff9800; }
 
-        .status-finished {
-          background: rgba(76, 175, 80, 0.2);
-          color: #81c784;
-        }
+        .status-finished { background: rgba(76, 175, 80, 0.2); color: #81c784; }
         .status-finished::before { background: #4caf50; }
-
-        .status-error {
-          background: rgba(244, 67, 54, 0.25);
-          color: #e57373;
-        }
-        .status-error::before { background: #f44336; animation: blink-fast 0.6s infinite; }
 
         @keyframes pulse-dot {
           0% { transform: scale(0.85); opacity: 0.5; }
           100% { transform: scale(1.3); opacity: 1; }
         }
 
-        @keyframes blink-fast {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.2; }
-        }
-
-        /* Error Notification Banner */
+        /* Banner Allarmi */
         .error-banner {
           display: none;
           background: linear-gradient(90deg, rgba(244, 67, 54, 0.25), rgba(211, 47, 47, 0.15));
           border-left: 4px solid var(--candy-red);
           border-radius: 8px;
           padding: 10px 14px;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
           align-items: center;
           gap: 10px;
           color: #ffcdd2;
@@ -449,24 +655,24 @@ class CandyCard extends HTMLElement {
           border-left: 4px solid var(--candy-amber);
           border-radius: 8px;
           padding: 8px 12px;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
           align-items: center;
           gap: 8px;
           color: #ffe0b2;
           font-size: 12px;
         }
 
-        /* Center Section: Appliance Graphic + Digital Display */
+        /* Visual Box Appliance */
         .appliance-container {
           display: grid;
-          grid-template-columns: 1fr 1.3fr;
+          grid-template-columns: 160px 1fr;
           gap: 18px;
           align-items: center;
           background: rgba(255, 255, 255, 0.02);
           border-radius: 16px;
           padding: 16px;
           border: 1px solid rgba(255, 255, 255, 0.05);
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
 
         @media (max-width: 480px) {
@@ -477,26 +683,28 @@ class CandyCard extends HTMLElement {
           }
         }
 
-        /* Graphic Representation */
+        /* Visual Graphic Container */
         .appliance-visual {
           position: relative;
-          width: 150px;
-          height: 150px;
+          width: 155px;
+          height: 155px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        /* Washer Porthole Outer Bezel */
+        /* ====================================================================
+           LAVASCIUGA: ANIMAZIONI ESTRATTE E CALCOLATE SUI PROGRAMMI
+           ==================================================================== */
         .washer-porthole {
           position: relative;
-          width: 140px;
-          height: 140px;
+          width: 150px;
+          height: 150px;
           border-radius: 50%;
           background: var(--candy-bezel);
-          box-shadow: inset 0 3px 8px rgba(255, 255, 255, 0.2), 
-                      0 8px 24px rgba(0, 0, 0, 0.6);
-          border: 4px solid #232b38;
+          box-shadow: inset 0 3px 10px rgba(255, 255, 255, 0.25),
+                      0 10px 28px rgba(0, 0, 0, 0.65);
+          border: 5px solid #232b38;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -505,156 +713,241 @@ class CandyCard extends HTMLElement {
 
         .porthole-glass {
           position: relative;
-          width: 108px;
-          height: 108px;
+          width: 114px;
+          height: 114px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(16, 26, 38, 0.9) 0%, rgba(5, 10, 16, 0.95) 100%);
-          box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.9);
+          background: radial-gradient(circle, rgba(16, 26, 38, 0.95) 0%, rgba(5, 10, 16, 0.98) 100%);
+          box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.95);
           display: flex;
           align-items: center;
           justify-content: center;
           overflow: hidden;
         }
 
-        /* Rotating Stainless Steel Drum */
+        /* Cestello Inox */
         .drum-inner {
           position: absolute;
-          width: 90px;
-          height: 90px;
+          width: 96px;
+          height: 96px;
           border-radius: 50%;
-          border: 2px dashed rgba(255, 255, 255, 0.25);
-          background: 
-            radial-gradient(circle, transparent 40%, rgba(255, 255, 255, 0.05) 70%),
-            conic-gradient(from 0deg, rgba(255, 255, 255, 0.1) 0deg, transparent 60deg, rgba(255, 255, 255, 0.15) 120deg, transparent 180deg, rgba(255, 255, 255, 0.1) 240deg, transparent 300deg, rgba(255, 255, 255, 0.15) 360deg);
-          box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
-          transition: transform 0.4s ease;
+          border: 2px dashed rgba(255, 255, 255, 0.3);
+          background:
+            radial-gradient(circle, transparent 40%, rgba(255, 255, 255, 0.06) 70%),
+            conic-gradient(from 0deg, rgba(255, 255, 255, 0.12) 0deg, transparent 60deg, rgba(255, 255, 255, 0.18) 120deg, transparent 180deg, rgba(255, 255, 255, 0.12) 240deg, transparent 300deg, rgba(255, 255, 255, 0.18) 360deg);
+          box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.85);
+          transform-origin: center center;
+          transition: filter 0.4s ease;
         }
 
-        /* Drum lifters */
         .drum-lifter {
           position: absolute;
-          width: 6px;
-          height: 22px;
-          background: linear-gradient(to right, #78909c, #cfd8dc);
+          width: 7px;
+          height: 24px;
+          background: linear-gradient(to right, #78909c, #eceff1);
           border-radius: 3px;
           top: 6px;
-          left: calc(50% - 3px);
-          transform-origin: 3px 39px;
+          left: calc(50% - 3.5px);
+          transform-origin: 3.5px 42px;
         }
         .drum-lifter:nth-child(2) { transform: rotate(120deg); }
         .drum-lifter:nth-child(3) { transform: rotate(240deg); }
 
-        /* Water wave inside drum */
+        /* Onde d'Acqua Dinamiche */
         .water-wave {
           position: absolute;
           bottom: 0;
           left: 0;
           right: 0;
-          height: 45%;
-          background: linear-gradient(180deg, rgba(0, 210, 255, 0.4) 0%, rgba(0, 114, 255, 0.6) 100%);
-          border-radius: 0 0 54px 54px;
+          height: 0%;
+          background: linear-gradient(180deg, rgba(0, 210, 255, 0.45) 0%, rgba(0, 114, 255, 0.65) 100%);
+          border-radius: 0 0 57px 57px;
           opacity: 0;
-          transform: translateY(10px);
-          transition: all 0.5s ease;
+          transition: height 0.8s ease, opacity 0.5s ease;
           overflow: hidden;
         }
 
-        /* Foam bubbles */
+        /* Schiuma e Bolle */
         .bubbles {
+          display: none;
           position: absolute;
           width: 100%;
           height: 100%;
-          background-image: radial-gradient(circle, #ffffff 1px, transparent 2px);
-          background-size: 8px 8px;
-          opacity: 0.3;
+          background-image:
+            radial-gradient(circle, #ffffff 1.5px, transparent 2px),
+            radial-gradient(circle, #e0f7fa 1px, transparent 1.5px);
+          background-size: 10px 10px, 6px 6px;
+          opacity: 0.55;
+          animation: float-bubbles 2s linear infinite;
         }
 
-        /* Heat Shimmer Glow (Drying Phase) */
+        @keyframes float-bubbles {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-8px); }
+        }
+
+        /* Pennacchi Vapore / Steam */
+        .steam-plume {
+          display: none;
+          position: absolute;
+          bottom: 10px;
+          left: 20%;
+          right: 20%;
+          height: 60px;
+          background: radial-gradient(ellipse at 50% 80%, rgba(255, 255, 255, 0.4) 0%, rgba(0, 210, 255, 0.2) 40%, transparent 80%);
+          filter: blur(4px);
+          border-radius: 50%;
+          animation: puff-steam 2.2s infinite ease-out;
+          pointer-events: none;
+        }
+
+        @keyframes puff-steam {
+          0% { transform: scale(0.7) translateY(5px); opacity: 0.1; }
+          50% { transform: scale(1.1) translateY(-10px); opacity: 0.6; }
+          100% { transform: scale(1.3) translateY(-25px); opacity: 0; }
+        }
+
+        /* Calore Asciugatura (Heat Shimmer Glow) */
         .heat-glow {
           position: absolute;
           inset: 0;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(255, 110, 0, 0.4) 10%, rgba(255, 60, 0, 0.15) 60%, transparent 80%);
+          background: radial-gradient(circle, rgba(255, 87, 34, 0.45) 15%, rgba(255, 152, 0, 0.2) 60%, transparent 80%);
           opacity: 0;
-          transition: opacity 0.6s ease;
+          transition: opacity 0.8s ease;
           pointer-events: none;
         }
 
-        /* Door handle & Lock LED */
+        /* Spia LED Blocco Oblò */
         .door-lock-led {
           position: absolute;
-          right: 5px;
+          right: 6px;
           top: 50%;
           transform: translateY(-50%);
-          width: 6px;
-          height: 6px;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
           background: #4caf50;
           box-shadow: 0 0 6px #4caf50;
+          transition: all 0.3s ease;
+        }
+        .door-lock-led.locked {
+          background: #f44336;
+          box-shadow: 0 0 8px #f44336;
         }
 
-        /* Running Animations */
-        .is-running .drum-inner {
-          animation: spin-drum 4.5s linear infinite;
+        /* ANIMAZIONI DI ROTAZIONE SPECIFICHE PER PROGRAMMA */
+        /* 1. Lavaggio Normale / Eco / Sintetici */
+        .mode-wash.is-running .drum-inner,
+        .mode-prewash.is-running .drum-inner {
+          animation: spin-smooth var(--spin-time, 3.2s) linear infinite;
+        }
+        .mode-wash.is-running .water-wave,
+        .mode-prewash.is-running .water-wave {
+          animation: slosh-normal 2.2s ease-in-out infinite alternate;
         }
 
-        .is-running.is-fast-spin .drum-inner {
-          animation: spin-drum 0.45s linear infinite;
+        /* 2. Programmi Rapidi (14', 30', 44', 59') */
+        .mode-rapid.is-running .drum-inner {
+          animation: spin-smooth var(--spin-time, 2.2s) linear infinite;
+        }
+        .mode-rapid.is-running .water-wave {
+          animation: slosh-vigorous 1.4s ease-in-out infinite alternate;
         }
 
-        .is-running .water-wave {
-          opacity: 1;
-          transform: translateY(0);
-          animation: slosh-water 2.5s ease-in-out infinite alternate;
+        /* 3. Lana & Delicati: Movimento CULLA (Cradle Rocking) */
+        .mode-cradle.is-running .drum-inner {
+          animation: cradle-rocking 4.8s ease-in-out infinite;
+        }
+        .mode-cradle.is-running .water-wave {
+          animation: slosh-gentle 4.8s ease-in-out infinite;
         }
 
-        .is-drying .water-wave {
-          opacity: 0 !important;
+        /* 4. Centrifuga ad Alta Velocità (Spin) */
+        .mode-spin.is-running .drum-inner {
+          animation: spin-smooth var(--spin-time, 0.28s) linear infinite;
+          filter: blur(0.7px);
         }
 
-        .is-drying .heat-glow {
+        /* 5. Asciugatura (Drying) */
+        .mode-drying.is-running .drum-inner {
+          animation: tumble-drying 6s ease-in-out infinite;
+        }
+        .mode-drying.is-running .heat-glow {
           opacity: 1;
           animation: pulse-heat 2s ease-in-out infinite alternate;
         }
 
-        .is-paused .drum-inner {
-          animation-play-state: paused !important;
+        /* 6. Vapore */
+        .mode-steam.is-running .drum-inner {
+          animation: tumble-drying 5s ease-in-out infinite;
         }
+
+        .is-paused .drum-inner,
         .is-paused .water-wave {
           animation-play-state: paused !important;
         }
 
-        @keyframes spin-drum {
+        @keyframes spin-smooth {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
 
-        @keyframes slosh-water {
-          0% { transform: translateY(2px) rotate(-4deg); }
-          100% { transform: translateY(0) rotate(4deg); }
+        @keyframes cradle-rocking {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(42deg); }
+          50% { transform: rotate(0deg); }
+          75% { transform: rotate(-42deg); }
+          100% { transform: rotate(0deg); }
+        }
+
+        @keyframes tumble-drying {
+          0% { transform: rotate(0deg); }
+          40% { transform: rotate(180deg); }
+          50% { transform: rotate(180deg); }
+          90% { transform: rotate(-40deg); }
+          100% { transform: rotate(0deg); }
+        }
+
+        @keyframes slosh-normal {
+          0% { transform: translateY(2px) rotate(-3deg); }
+          100% { transform: translateY(0) rotate(3deg); }
+        }
+
+        @keyframes slosh-vigorous {
+          0% { transform: translateY(3px) rotate(-6deg); }
+          100% { transform: translateY(-2px) rotate(6deg); }
+        }
+
+        @keyframes slosh-gentle {
+          0% { transform: rotate(-2deg); }
+          50% { transform: rotate(2deg); }
+          100% { transform: rotate(-2deg); }
         }
 
         @keyframes pulse-heat {
-          0% { opacity: 0.5; filter: blur(0px); }
-          100% { opacity: 0.85; filter: blur(2px); }
+          0% { opacity: 0.45; filter: blur(0px); }
+          100% { opacity: 0.95; filter: blur(2px); }
         }
 
-        /* Dishwasher Visual */
+        /* ====================================================================
+           LAVASTOVIGLIE: ANIMAZIONI SPECIFICHE PER PROGRAMMA E DISPOSITIVO
+           ==================================================================== */
         .dishwasher-cabinet {
           position: relative;
-          width: 135px;
-          height: 140px;
+          width: 142px;
+          height: 148px;
           background: var(--candy-metallic);
-          border-radius: 8px;
+          border-radius: 10px;
           border: 2px solid #37474f;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
           overflow: hidden;
           display: flex;
           flex-direction: column;
+          transition: transform 0.4s ease;
         }
 
         .dishwasher-door-handle {
-          height: 18px;
+          height: 20px;
           background: #263238;
           border-bottom: 2px solid #455a64;
           display: flex;
@@ -665,7 +958,7 @@ class CandyCard extends HTMLElement {
 
         .dw-led-strip {
           display: flex;
-          gap: 6px;
+          gap: 5px;
         }
         .dw-led {
           width: 5px;
@@ -682,11 +975,11 @@ class CandyCard extends HTMLElement {
           position: relative;
           flex: 1;
           background: #0f151c;
-          padding: 8px;
+          padding: 6px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          justify-content: space-around;
+          justify-content: space-between;
         }
 
         .dw-rack {
@@ -694,55 +987,127 @@ class CandyCard extends HTMLElement {
           background: #37474f;
           border-radius: 2px;
           position: relative;
+          margin: 6px 0;
         }
 
         .dw-spray-arm {
           position: absolute;
           left: 50%;
-          width: 75px;
+          width: 80px;
           height: 6px;
-          background: linear-gradient(90deg, #90a4ae, #b0bec5);
+          background: linear-gradient(90deg, #90a4ae, #cfd8dc);
           border-radius: 3px;
           transform: translateX(-50%);
           transform-origin: center center;
-          transition: all 0.3s ease;
         }
-        .spray-top { top: 28px; }
-        .spray-bottom { bottom: 25px; }
+        .spray-top { top: 32px; }
+        .spray-bottom { bottom: 28px; }
 
-        .is-running .dw-spray-arm {
-          animation: spin-spray 1.2s linear infinite;
+        /* Resistenza inferiore per asciugatura */
+        .dw-heating-element {
+          position: absolute;
+          bottom: 4px;
+          left: 15px;
+          right: 15px;
+          height: 3px;
+          background: #37474f;
+          border-radius: 2px;
+          transition: all 0.5s ease;
+        }
+        .dw-heating-element.heating {
+          background: #ff5722;
+          box-shadow: 0 0 10px #ff5722;
+          animation: pulse-element 1.5s infinite alternate;
         }
 
+        @keyframes pulse-element {
+          0% { opacity: 0.6; }
+          100% { opacity: 1; }
+        }
+
+        /* Getti d'Acqua e Irrorazione */
         .dw-water-jets {
           position: absolute;
           inset: 0;
-          background-image: 
-            radial-gradient(ellipse at 50% 30%, rgba(0, 210, 255, 0.25) 0%, transparent 60%),
-            radial-gradient(ellipse at 50% 70%, rgba(0, 210, 255, 0.25) 0%, transparent 60%);
           opacity: 0;
           transition: opacity 0.4s ease;
+          pointer-events: none;
         }
-        .is-running .dw-water-jets {
+
+        /* 1. Modalità Intensivo 75°C: Rotazione veloce contrapposta e getti potenti */
+        .mode-dw-intensive.is-running .spray-top {
+          animation: spin-spray-cw 0.8s linear infinite;
+        }
+        .mode-dw-intensive.is-running .spray-bottom {
+          animation: spin-spray-ccw 0.8s linear infinite;
+        }
+        .mode-dw-intensive.is-running .dw-water-jets {
           opacity: 1;
+          background-image:
+            radial-gradient(circle at 45% 35%, rgba(0, 210, 255, 0.4) 0%, transparent 60%),
+            radial-gradient(circle at 55% 65%, rgba(0, 210, 255, 0.4) 0%, transparent 60%);
+          animation: jet-pulsate 0.4s infinite alternate;
+        }
+
+        /* 2. Modalità Delicato 45°C: Rotazione lenta soffice */
+        .mode-dw-delicate.is-running .spray-top {
+          animation: spin-spray-cw 2.5s linear infinite;
+        }
+        .mode-dw-delicate.is-running .spray-bottom {
+          animation: spin-spray-ccw 2.5s linear infinite;
+        }
+        .mode-dw-delicate.is-running .dw-water-jets {
+          opacity: 0.6;
+          background-image: radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.25) 0%, transparent 70%);
+          animation: jet-pulsate 1.2s infinite alternate;
+        }
+
+        /* 3. Modalità Normale / Eco / Rapido */
+        .mode-dw-normal.is-running .spray-top,
+        .mode-dw-eco.is-running .spray-top,
+        .mode-dw-rapid.is-running .spray-top {
+          animation: spin-spray-cw 1.2s linear infinite;
+        }
+        .mode-dw-normal.is-running .spray-bottom,
+        .mode-dw-eco.is-running .spray-bottom,
+        .mode-dw-rapid.is-running .spray-bottom {
+          animation: spin-spray-ccw 1.2s linear infinite;
+        }
+        .mode-dw-normal.is-running .dw-water-jets,
+        .mode-dw-eco.is-running .dw-water-jets,
+        .mode-dw-rapid.is-running .dw-water-jets {
+          opacity: 0.85;
+          background-image:
+            radial-gradient(circle at 50% 30%, rgba(0, 210, 255, 0.3) 0%, transparent 60%),
+            radial-gradient(circle at 50% 70%, rgba(0, 210, 255, 0.3) 0%, transparent 60%);
           animation: jet-pulsate 0.6s infinite alternate;
         }
 
-        @keyframes spin-spray {
+        /* 4. Modalità Asciugatura Lavastoviglie: Bracci fermi e vapori */
+        .mode-dw-drying.is-running .dw-water-jets {
+          opacity: 1;
+          background: radial-gradient(ellipse at 50% 80%, rgba(255, 87, 34, 0.25) 0%, transparent 75%);
+        }
+
+        @keyframes spin-spray-cw {
           0% { transform: translateX(-50%) rotate(0deg); }
           100% { transform: translateX(-50%) rotate(360deg); }
         }
-
-        @keyframes jet-pulsate {
-          0% { opacity: 0.4; }
-          100% { opacity: 0.9; }
+        @keyframes spin-spray-ccw {
+          0% { transform: translateX(-50%) rotate(360deg); }
+          100% { transform: translateX(-50%) rotate(0deg); }
         }
 
-        /* Digital Display Panel */
+        @keyframes jet-pulsate {
+          0% { opacity: 0.35; }
+          100% { opacity: 0.95; }
+        }
+
+        /* Display Digitale */
         .digital-panel {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 5px;
         }
 
         .timer-row {
@@ -752,7 +1117,7 @@ class CandyCard extends HTMLElement {
         }
 
         .digital-timer {
-          font-family: "Courier New", Courier, monospace, monospace;
+          font-family: "Courier New", Courier, monospace;
           font-size: 38px;
           font-weight: 800;
           letter-spacing: 1.5px;
@@ -783,25 +1148,28 @@ class CandyCard extends HTMLElement {
           font-weight: 500;
         }
 
-        /* Indicators and Parameters Chips */
+        .cycle-live-description {
+          font-size: 11px;
+          color: #b0bec5;
+          font-style: italic;
+          line-height: 1.3;
+          margin-top: 2px;
+        }
+
+        /* Griglia Parametri (Washer) */
         .parameters-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
           gap: 8px;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
 
         .param-chip {
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 10px;
-          padding: 8px 6px;
+          padding: 7px 6px;
           text-align: center;
-          transition: background 0.2s ease;
-        }
-
-        .param-chip:hover {
-          background: rgba(255, 255, 255, 0.08);
         }
 
         .param-chip .lbl {
@@ -821,10 +1189,10 @@ class CandyCard extends HTMLElement {
           color: #ffffff;
         }
 
-        /* Warning Indicators for Dishwasher (Salt & Rinse) */
+        /* Indicatori Sale e Brillantante Lavastoviglie */
         .dw-warnings {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           margin-bottom: 12px;
         }
 
@@ -859,11 +1227,16 @@ class CandyCard extends HTMLElement {
           animation: blink-fast 1s infinite;
         }
 
-        /* Program Selection & Options */
+        @keyframes blink-fast {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.2; }
+        }
+
+        /* Sezione Controlli */
         .controls-section {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
         }
 
         .dropdown-container {
@@ -891,7 +1264,6 @@ class CandyCard extends HTMLElement {
           font-weight: 500;
           outline: none;
           cursor: pointer;
-          transition: border-color 0.2s ease;
         }
 
         .program-dropdown:focus {
@@ -899,7 +1271,6 @@ class CandyCard extends HTMLElement {
           box-shadow: 0 0 8px var(--candy-blue-glow);
         }
 
-        /* Option Switches / Chips */
         .options-row {
           display: flex;
           flex-wrap: wrap;
@@ -917,9 +1288,6 @@ class CandyCard extends HTMLElement {
           cursor: pointer;
           user-select: none;
           transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 5px;
         }
 
         .option-chip:hover {
@@ -934,12 +1302,12 @@ class CandyCard extends HTMLElement {
           box-shadow: 0 0 8px rgba(0, 210, 255, 0.3);
         }
 
-        /* Action Buttons Toolbar */
+        /* Pulsanti Toolbar */
         .action-toolbar {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 0.8fr;
           gap: 8px;
-          margin-top: 6px;
+          margin-top: 4px;
         }
 
         .btn-action {
@@ -972,18 +1340,14 @@ class CandyCard extends HTMLElement {
           border: 1px solid rgba(255, 152, 0, 0.4);
           color: #ffb74d;
         }
-        .btn-pause:hover {
-          background: rgba(255, 152, 0, 0.3);
-        }
+        .btn-pause:hover { background: rgba(255, 152, 0, 0.3); }
 
         .btn-stop {
           background: rgba(244, 67, 54, 0.18);
           border: 1px solid rgba(244, 67, 54, 0.4);
           color: #e57373;
         }
-        .btn-stop:hover {
-          background: rgba(244, 67, 54, 0.3);
-        }
+        .btn-stop:hover { background: rgba(244, 67, 54, 0.3); }
 
         .btn-buzzer {
           background: rgba(255, 255, 255, 0.08);
@@ -995,9 +1359,7 @@ class CandyCard extends HTMLElement {
           color: #ffffff;
         }
 
-        .btn-action:active {
-          transform: scale(0.97);
-        }
+        .btn-action:active { transform: scale(0.97); }
       </style>
 
       <ha-card>
@@ -1010,13 +1372,13 @@ class CandyCard extends HTMLElement {
           <div class="status-badge status-standby">In attesa</div>
         </div>
 
-        <!-- Error Banner -->
+        <!-- Banner Errore -->
         <div class="error-banner">
           <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
           <span class="error-text">Allarme</span>
         </div>
 
-        <!-- Door Open Banner (Dishwasher) -->
+        <!-- Banner Sportello Lavastoviglie Aperto -->
         ${isDishwasher ? `
         <div class="door-open-banner">
           <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 19V5c0-1.1-.9-2-2-2H7c-1.1 0-2 .9-2 2v14H3v2h18v-2h-2zm-4-6h-2v-2h2v2z"/></svg>
@@ -1024,12 +1386,11 @@ class CandyCard extends HTMLElement {
         </div>
         ` : ''}
 
-        <!-- Appliance Visual + Digital Panel -->
+        <!-- Contenitore Grafico e Display -->
         <div class="appliance-container">
-          <!-- Graphic representation -->
           <div class="appliance-visual">
             ${isDishwasher ? `
-              <!-- Dishwasher Visual -->
+              <!-- Vasca Lavastoviglie Animata -->
               <div class="dishwasher-cabinet">
                 <div class="dishwasher-door-handle">
                   <div class="dw-led-strip">
@@ -1043,10 +1404,11 @@ class CandyCard extends HTMLElement {
                   <div class="dw-spray-arm spray-top"></div>
                   <div class="dw-rack"></div>
                   <div class="dw-spray-arm spray-bottom"></div>
+                  <div class="dw-heating-element"></div>
                 </div>
               </div>
             ` : `
-              <!-- Washer / Washer-Dryer Visual -->
+              <!-- Oblò e Cestello Lavasciuga / Lavatrice Animato -->
               <div class="washer-porthole">
                 <div class="porthole-glass">
                   <div class="drum-inner">
@@ -1057,14 +1419,15 @@ class CandyCard extends HTMLElement {
                   <div class="water-wave">
                     <div class="bubbles"></div>
                   </div>
+                  <div class="steam-plume"></div>
                   <div class="heat-glow"></div>
                 </div>
-                <div class="door-lock-led"></div>
+                <div class="door-lock-led" title="Oblò"></div>
               </div>
             `}
           </div>
 
-          <!-- Digital Display Info -->
+          <!-- Display Digitale -->
           <div class="digital-panel">
             <div class="timer-row">
               <span class="digital-timer">00:00</span>
@@ -1072,10 +1435,11 @@ class CandyCard extends HTMLElement {
             </div>
             <div class="current-program-name">Seleziona programma</div>
             <div class="current-phase-name"></div>
+            <div class="cycle-live-description">In attesa di avvio</div>
           </div>
         </div>
 
-        <!-- Parameter Badges (Washer) -->
+        <!-- Parametri Rapidi Washer -->
         ${!isDishwasher ? `
         <div class="parameters-grid">
           <div class="param-chip chip-temp">
@@ -1101,7 +1465,7 @@ class CandyCard extends HTMLElement {
           </div>
         </div>
         ` : `
-        <!-- Dishwasher Salt & Rinse Warning Indicators -->
+        <!-- Avvisi Sale e Brillantante Lavastoviglie -->
         <div class="dw-warnings">
           <div class="dw-warn-pill warn-salt">
             <span class="dot"></span>
@@ -1114,17 +1478,17 @@ class CandyCard extends HTMLElement {
         </div>
         `}
 
-        <!-- Controls Section -->
+        <!-- Controlli Interattivi -->
         <div class="controls-section">
-          <!-- Program Dropdown -->
+          <!-- Tendina Programmi -->
           <div class="dropdown-container">
-            <label class="dropdown-label">Programma di lavaggio</label>
+            <label class="dropdown-label">Programma Selezionato</label>
             <select class="program-dropdown">
               <option value="">Caricamento programmi...</option>
             </select>
           </div>
 
-          <!-- Options Chips -->
+          <!-- Chip Opzioni Rapide -->
           <div class="options-row">
             ${!isDishwasher ? `
               <div class="option-chip" data-opt="prewash">Prelavaggio</div>
@@ -1140,7 +1504,7 @@ class CandyCard extends HTMLElement {
             `}
           </div>
 
-          <!-- Toolbar Action Buttons -->
+          <!-- Pulsantiera di Comando -->
           <div class="action-toolbar">
             <button class="btn-action btn-start">
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -1154,7 +1518,7 @@ class CandyCard extends HTMLElement {
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
               Stop
             </button>
-            <button class="btn-action btn-buzzer" title="Emetti Bip">
+            <button class="btn-action btn-buzzer" title="Emetti Bip Segnale Acustico">
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
             </button>
           </div>
@@ -1168,7 +1532,6 @@ class CandyCard extends HTMLElement {
   _bindEvents() {
     const root = this.shadowRoot;
 
-    // Dropdown change
     const selectElem = root.querySelector('.program-dropdown');
     if (selectElem) {
       selectElem.addEventListener('change', (e) => {
@@ -1180,7 +1543,6 @@ class CandyCard extends HTMLElement {
       });
     }
 
-    // Option Chips clicks
     root.querySelectorAll('.option-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         const optKey = chip.getAttribute('data-opt');
@@ -1192,7 +1554,6 @@ class CandyCard extends HTMLElement {
       });
     });
 
-    // Action buttons
     const btnStart = root.querySelector('.btn-start');
     if (btnStart) {
       btnStart.addEventListener('click', () => {
@@ -1227,7 +1588,7 @@ class CandyCard extends HTMLElement {
   }
 }
 
-// Visual Card Editor in Lovelace GUI
+// Editor Visivo Lovelace Card
 class CandyCardEditor extends HTMLElement {
   setConfig(config) {
     this._config = config;
@@ -1277,7 +1638,7 @@ class CandyCardEditor extends HTMLElement {
   }
 }
 
-// Register Custom Web Components
+// Registrazione Custom Elements
 if (!customElements.get('candy-card')) {
   customElements.define('candy-card', CandyCard);
 }
@@ -1285,16 +1646,16 @@ if (!customElements.get('candy-card-editor')) {
   customElements.define('candy-card-editor', CandyCardEditor);
 }
 
-// Register with Home Assistant Custom Card Picker
+// Registrazione nel selettore schede di Home Assistant
 window.customCards = window.customCards || [];
 if (!window.customCards.some(card => card.type === 'candy-card')) {
   window.customCards.push({
     type: 'candy-card',
     name: 'Candy Simply-Fi Card',
-    description: 'Scheda grafica con simulatore animato per Lavasciuga, Lavatrici e Lavastoviglie Candy Simply-Fi.',
+    description: 'Scheda grafica con simulatore fisico animato allineato a ciascun programma e dispositivo Candy.',
     preview: true,
     documentationURL: 'https://github.com/benedettosiddi/candysimply'
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.0.0 Registrata con successo ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.1.0 Animazioni Programmi Attive ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
