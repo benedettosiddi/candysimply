@@ -116,12 +116,16 @@ class CandyWasherOptionSwitch(CandyBaseSwitch):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Stage option ON."""
         self.coordinator.staged_options[self._opt_key] = 1
+        if self._opt_key == "Opt7":
+            self.coordinator.staged_options["Steam"] = "1"
         self.async_write_ha_state()
         self.coordinator.async_update_listeners()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Stage option OFF."""
         self.coordinator.staged_options[self._opt_key] = 0
+        if self._opt_key == "Opt7":
+            self.coordinator.staged_options["Steam"] = "0"
         self.async_write_ha_state()
         self.coordinator.async_update_listeners()
 

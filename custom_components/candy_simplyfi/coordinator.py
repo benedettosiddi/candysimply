@@ -281,7 +281,8 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["opt3_extra_rinse"] = str(sub.get("Opt3", "0")) == "1"
             data["opt4_easy_iron"] = str(sub.get("Opt4", "0")) == "1"
             data["opt5_night"] = str(sub.get("Opt5", "0")) == "1"
-            data["opt7_steam"] = str(sub.get("Opt7", "0")) == "1"
+            data["opt7_steam"] = str(sub.get("Opt7", "0")) == "1" or str(sub.get("Steam", "0")) in ("1", "2", "3")
+            data["steam_level"] = str(sub.get("Steam", "0"))
 
             # Door lock & Remote Control status
             # In Candy washing machines, WiFiStatus == "1" when physical dial is in Wi-Fi / Remote position
