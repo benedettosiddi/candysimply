@@ -1,0 +1,149 @@
+# ==============================================================================
+# SCHEDA LOVELACE: CANDY LAVASTOVIGLIE SIMPLY-FI
+# ==============================================================================
+# Questa configurazione offre 2 modalità grafiche pronte all'uso:
+# OPZIONE A: Scheda personalizzata Candy Card (con getti d'acqua, bracci rotanti, allarmi sale/brillantante)
+# OPZIONE B: Scheda Nativa Home Assistant (Vertical Stack con Tile, Allarmi e Pulsanti)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# OPZIONE A: Scheda Animata Candy Custom Card (CONSIGLIATA)
+# ------------------------------------------------------------------------------
+# La risorsa viene registrata automaticamente dall'integrazione su:
+# /candy_simplyfi/candy-card.js
+# ------------------------------------------------------------------------------
+type: custom:candy-card
+name: "Candy Lavastoviglie"
+device_type: dishwasher
+# Opzionale: specificare il prefisso o le singole entità se si desidera forzarle:
+# entity_prefix: "candy_lavastoviglie"
+
+---
+
+# ------------------------------------------------------------------------------
+# OPZIONE B: Scheda Nativa Home Assistant (Stack Completo con Icone e Controlli)
+# Per chi preferisce usare solo le schede integrate di Home Assistant.
+# Sostituisci i nomi delle entità con quelli generati dalla tua istanza.
+# ------------------------------------------------------------------------------
+type: vertical-stack
+cards:
+  - type: header
+    title: "Candy Lavastoviglie Simply-Fi"
+
+  # Riga 1: Stato Generale e Tempo Rimanente
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.candy_lavastoviglie_stato
+        name: "Stato"
+        icon: mdi:dishwasher
+        color: blue
+
+      - type: tile
+        entity: sensor.candy_lavastoviglie_tempo_rimanente
+        name: "Tempo Rimanente"
+        icon: mdi:timer-sand
+        color: cyan
+
+  # Riga 2: Programma Attivo e Sportello
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.candy_lavastoviglie_programma
+        name: "Programma Impostato"
+        icon: mdi:silverware-clean
+
+      - type: tile
+        entity: binary_sensor.candy_lavastoviglie_sportello_aperto
+        name: "Sportello"
+        state_content: state
+
+  # Riga 3: Avvisi di Manutenzione (Mancanza Sale e Mancanza Brillantante)
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: binary_sensor.candy_lavastoviglie_mancanza_sale_rigenerante
+        name: "Sale Rigenerante"
+        icon: mdi:shaker-outline
+        color: amber
+
+      - type: tile
+        entity: binary_sensor.candy_lavastoviglie_mancanza_brillantante
+        name: "Brillantante"
+        icon: mdi:bottle-tonic-outline
+        color: amber
+
+  # Riga 4: Selezione e Configurazione Programma Staging
+  - type: entities
+    title: "Impostazione Ciclo di Lavaggio"
+    show_header_toggle: false
+    entities:
+      - entity: select.candy_lavastoviglie_programma_lavastoviglie
+        name: "Seleziona Programma"
+        icon: mdi:dishwasher
+      - entity: number.candy_lavastoviglie_partenza_ritardata
+        name: "Partenza Ritardata (Ore)"
+        icon: mdi:clock-start
+
+  # Riga 5: Opzioni Lavastoviglie (Switch)
+  - type: entities
+    title: "Opzioni e Funzioni Speciali"
+    show_header_toggle: false
+    entities:
+      - entity: switch.candy_lavastoviglie_opzione_mezzo_carico
+        name: "Mezzo Carico"
+        icon: mdi:fraction-one-half
+      - entity: switch.candy_lavastoviglie_opzione_pastiglie_3_in_1
+        name: "Pastiglia Detergente 3-in-1"
+        icon: mdi:pill
+      - entity: switch.candy_lavastoviglie_opzione_asciugatura_extra
+        name: "Asciugatura Extra"
+        icon: mdi:weather-sunny
+      - entity: switch.candy_lavastoviglie_apertura_automatica_sportello
+        name: "Apertura Automatica Sportello a Fine Ciclo"
+        icon: mdi:door-open
+      - entity: switch.candy_lavastoviglie_modalita_eco_risparmio
+        name: "Modalità Risparmio Eco"
+        icon: mdi:leaf
+
+  # Riga 6: Pulsanti di Controllo
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: "Avvia"
+        icon: mdi:play-circle
+        color: green
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavastoviglie_avvia_programma_selezionato
+
+      - type: button
+        name: "Pausa"
+        icon: mdi:pause-circle
+        color: orange
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavastoviglie_metti_in_pausa
+
+      - type: button
+        name: "Annulla"
+        icon: mdi:stop-circle
+        color: red
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavastoviglie_annulla_stop_ciclo
+
+      - type: button
+        name: "Bip"
+        icon: mdi:volume-high
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavastoviglie_segnale_acustico_bip

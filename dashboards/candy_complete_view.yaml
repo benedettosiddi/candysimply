@@ -1,0 +1,103 @@
+# ==============================================================================
+# DASHBOARD COMPLETA HOME ASSISTANT: ELETTRODOMESTICI CANDY SIMPLY-FI
+# ==============================================================================
+# Copia questo contenuto in una nuova Vista (View) del tuo Dashboard Lovelace
+# (Modalità YAML o Modifica Dashboard -> Raw Configuration Editor).
+# ==============================================================================
+
+title: "Elettrodomestici Candy"
+path: "candy-appliances"
+icon: "mdi:washing-machine"
+badges:
+  - entity: binary_sensor.candy_lavasciuga_in_funzione
+    name: "Lavasciuga in funzione"
+  - entity: binary_sensor.candy_lavastoviglie_in_funzione
+    name: "Lavastoviglie in funzione"
+  - entity: binary_sensor.candy_lavastoviglie_mancanza_sale_rigenerante
+    name: "Mancanza Sale"
+  - entity: binary_sensor.candy_lavastoviglie_mancanza_brillantante
+    name: "Mancanza Brillantante"
+
+cards:
+  # ----------------------------------------------------------------------------
+  # SEZIONE 1: SCHEDE GRAFICHE ANIMATE CANDY (Custom Lovelace Card)
+  # ----------------------------------------------------------------------------
+  - type: grid
+    title: "Panoramica Grafica Elettrodomestici"
+    columns: 2
+    square: false
+    cards:
+      # Scheda Grafica Lavasciuga con cestello rotante, onde e calore
+      - type: custom:candy-card
+        name: "Lavasciuga Smart Pro"
+        device_type: washer_dryer
+
+      # Scheda Grafica Lavastoviglie con bracci rotanti e indicatori allarme
+      - type: custom:candy-card
+        name: "Lavastoviglie Brava"
+        device_type: dishwasher
+
+  # ----------------------------------------------------------------------------
+  # SEZIONE 2: STATO DI DETTAGLIO E DIAGNOSTICA
+  # ----------------------------------------------------------------------------
+  - type: grid
+    title: "Diagnostica e Storico Cicli"
+    columns: 2
+    square: false
+    cards:
+      - type: history-graph
+        title: "Attività Recente Lavasciuga"
+        hours_to_show: 24
+        entities:
+          - entity: sensor.candy_lavasciuga_stato
+            name: "Stato"
+          - entity: sensor.candy_lavasciuga_fase
+            name: "Fase Ciclo"
+          - entity: sensor.candy_lavasciuga_temperatura
+            name: "Temperatura (°C)"
+
+      - type: history-graph
+        title: "Attività Recente Lavastoviglie"
+        hours_to_show: 24
+        entities:
+          - entity: sensor.candy_lavastoviglie_stato
+            name: "Stato"
+          - entity: sensor.candy_lavastoviglie_programma
+            name: "Programma"
+
+  # ----------------------------------------------------------------------------
+  # SEZIONE 3: AUTOMAZIONI SUGGERITE (Notifiche a fine ciclo)
+  # ----------------------------------------------------------------------------
+  - type: markdown
+    title: "Automazioni e Notifiche Consigliate"
+    content: >
+      ### 🔔 Notifica Fine Lavaggio su Smartphone
+
+      ```yaml
+      alias: "Candy: Notifica Fine Ciclo Lavasciuga"
+      trigger:
+        - platform: state
+          entity_id: sensor.candy_lavasciuga_stato
+          from: "In funzione"
+          to: "Ciclo terminato"
+      action:
+        - service: notify.notify
+          data:
+            title: "Candy Lavasciuga"
+            message: "Il ciclo di lavaggio è terminato! Puoi stendere o ritirare il bucato."
+      ```
+
+      ### 🧂 Notifica Mancanza Sale Lavastoviglie
+
+      ```yaml
+      alias: "Candy: Avviso Mancanza Sale"
+      trigger:
+        - platform: state
+          entity_id: binary_sensor.candy_lavastoviglie_mancanza_sale_rigenerante
+          to: "on"
+      action:
+        - service: notify.notify
+          data:
+            title: "Candy Lavastoviglie"
+            message: "Attenzione: il serbatoio del sale rigenerante è vuoto."
+      ```

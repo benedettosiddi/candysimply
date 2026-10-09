@@ -151,27 +151,78 @@ Per la procedura dettagliata di connessione al Wi-Fi, consulta il file [GUIDA_ON
 
 ---
 
-## Esempio Card Dashboard Lovelace
+## 🎨 Grafica ed Esperienza Utente (Lovelace Cards)
 
-### Card Lavasciuga Candy
+L'integrazione include una **scheda Lovelace personalizzata (`candy-card`)** con rendering fotorealistico e animazioni grafiche dinamiche che riflettono in tempo reale le funzioni e lo stato degli elettrodomestici Candy:
+
+### Funzionalità della Scheda Grafica (`candy-card`):
+- 🌀 **Animazione Cestello (Lavasciuga / Lavatrice)**:
+  - Rotazione realistica del cestello durante il lavaggio.
+  - Centrifuga ultra-rapida con accelerazione visiva durante la fase di centrifuga.
+  - Onde d'acqua e schiuma animate all'interno dell'oblò durante i cicli d'acqua.
+  - Bagliore termico e onde di calore arancioni animate durante la fase di asciugatura!
+  - Spia LED di blocco oblò (verde/rosso).
+- 🍽️ **Visualizzazione Lavastoviglie**:
+  - Bracci irroratori rotanti e getti d'acqua dinamici ad alta pressione.
+  - Indicatori luminosi di avviso per **Mancanza Sale** e **Mancanza Brillantante**.
+  - Avviso visivo sportello aperto.
+- ⏱️ **Display Digitale stile Candy**:
+  - Countdown a 7 segmenti del tempo rimanente.
+  - Nome del programma attivo e fase corrente in evidenza.
+  - Badge di stato con led pulsante (Standby, In funzione, In pausa, Terminato, Errore).
+- 🎛️ **Controlli Interattivi Integrati**:
+  - Selettore a tendina dei programmi Candy.
+  - Pulsanti rapidi di opzione (Prelavaggio, Igiene+, Risciacquo+, Stiro Facile, Vapore / Mezzo Carico, Pastiglie, Extra Dry).
+  - Pulsanti diretti **Avvia**, **Pausa**, **Stop/Reset** e **Bip sonoro**.
+- ⚠️ **Banner Allarmi Diagnostici**:
+  - Traduzione automatica dei codici di errore (E01...E22) con descrizione dettagliata della causa e risoluzione.
+
+### Come usare la Scheda Grafica Personalizzata (`candy-card`):
+
+La risorsa viene registrata in automatico dall'integrazione al percorso:
+`/candy_simplyfi/candy-card.js`
+
+> Se la risorsa non dovesse caricarsi automaticamente in Lovelace:
+> Vai su **Impostazioni** -> **Dashboard** -> **Risorse** -> **Aggiungi Risorsa** -> URL: `/candy_simplyfi/candy-card.js` (Tipo: *Modulo JavaScript*).
+
+#### 1. Scheda Lavasciuga Candy:
+```yaml
+type: custom:candy-card
+name: "Candy Lavasciuga Smart Pro"
+device_type: washer_dryer
+```
+
+#### 2. Scheda Lavastoviglie Candy:
+```yaml
+type: custom:candy-card
+name: "Candy Lavastoviglie Brava"
+device_type: dishwasher
+```
+
+---
+
+### Schede Native Home Assistant (Alternative Senza Custom Card)
+Nella cartella `dashboards/` trovi file completi pronti all'uso:
+- `dashboards/candy_washer_dryer_card.yaml`: Scheda completa per Lavasciuga.
+- `dashboards/candy_dishwasher_card.yaml`: Scheda completa per Lavastoviglie.
+- `dashboards/candy_complete_view.yaml`: Intera vista con grafici storici, badges e automazioni.
+
+#### Esempio Scheda Nativa Stack Lavasciuga:
 ```yaml
 type: vertical-stack
 cards:
   - type: entities
     title: 🧺 Lavasciuga Candy
     entities:
-      - entity: sensor.candy_lavasciuga_simply_fi_stato_elettrodomestico
-      - entity: sensor.candy_lavasciuga_simply_fi_programma_attivo
-      - entity: sensor.candy_lavasciuga_simply_fi_fase_del_ciclo
-      - entity: sensor.candy_lavasciuga_simply_fi_tempo_rimanente
-      - entity: binary_sensor.candy_lavasciuga_simply_fi_controllo_remoto_abilitato_manopola_su_wi_fi
-      - entity: binary_sensor.candy_lavasciuga_simply_fi_oblo_bloccato_sicurezza
-      - entity: select.candy_lavasciuga_simply_fi_seleziona_programma_di_lavaggio_asciugatura
-      - entity: select.candy_lavasciuga_simply_fi_imposta_temperatura_c
-      - entity: select.candy_lavasciuga_simply_fi_imposta_centrifuga_rpm
-      - entity: select.candy_lavasciuga_simply_fi_imposta_asciugatura_lavasciuga
-      - entity: switch.candy_lavasciuga_simply_fi_trattamento_vapore
-      - entity: switch.candy_lavasciuga_simply_fi_igiene
+      - entity: sensor.candy_lavasciuga_stato
+      - entity: sensor.candy_lavasciuga_programma
+      - entity: sensor.candy_lavasciuga_fase
+      - entity: sensor.candy_lavasciuga_tempo_rimanente
+      - entity: binary_sensor.candy_lavasciuga_oblo_bloccato
+      - entity: select.candy_lavasciuga_selezione_programma
+      - entity: select.candy_lavasciuga_selezione_temperatura
+      - entity: select.candy_lavasciuga_selezione_centrifuga
+      - entity: select.candy_lavasciuga_selezione_asciugatura
   - type: horizontal-stack
     cards:
       - type: button
@@ -181,7 +232,7 @@ cards:
           action: call_service
           service: button.press
           target:
-            entity_id: button.candy_lavasciuga_simply_fi_avvia_programma_selezionato
+            entity_id: button.candy_lavasciuga_avvia_programma
       - type: button
         name: Pausa
         icon: mdi:pause-circle
@@ -189,7 +240,7 @@ cards:
           action: call_service
           service: button.press
           target:
-            entity_id: button.candy_lavasciuga_simply_fi_metti_in_pausa
+            entity_id: button.candy_lavasciuga_metti_in_pausa
       - type: button
         name: Stop
         icon: mdi:stop-circle
@@ -197,7 +248,7 @@ cards:
           action: call_service
           service: button.press
           target:
-            entity_id: button.candy_lavasciuga_simply_fi_annulla_stop_ciclo
+            entity_id: button.candy_lavasciuga_annulla_stop_ciclo
 ```
 
 ### Card Lavastoviglie Candy

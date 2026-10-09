@@ -1,0 +1,174 @@
+# ==============================================================================
+# SCHEDA LOVELACE: CANDY LAVASCIUGA / LAVATRICE SIMPLY-FI
+# ==============================================================================
+# Questa configurazione offre 2 modalità grafiche pronte all'uso:
+# OPZIONE A: Scheda personalizzata Candy Card (con animazione cestello, onde acqua, calore asciugatura)
+# OPZIONE B: Scheda Nativa Home Assistant (Vertical Stack con Tile, Gauge, Badges e Pulsanti)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# OPZIONE A: Scheda Animata Candy Custom Card (CONSIGLIATA)
+# ------------------------------------------------------------------------------
+# La risorsa viene registrata automaticamente dall'integrazione su:
+# /candy_simplyfi/candy-card.js
+# ------------------------------------------------------------------------------
+type: custom:candy-card
+name: "Candy Lavasciuga"
+device_type: washer_dryer
+# Opzionale: specificare il prefisso o le singole entità se si desidera forzarle:
+# entity_prefix: "candy_lavasciuga"
+
+---
+
+# ------------------------------------------------------------------------------
+# OPZIONE B: Scheda Nativa Home Assistant (Stack Completo con Icone e Controlli)
+# Per chi preferisce usare solo le schede integrate di Home Assistant.
+# Sostituisci i nomi delle entità con quelli generati dalla tua istanza.
+# ------------------------------------------------------------------------------
+type: vertical-stack
+cards:
+  - type: header
+    title: "Candy Lavasciuga Simply-Fi"
+
+  # Riga 1: Stato Generale e Tempo Rimanente
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.candy_lavasciuga_stato
+        name: "Stato Macchina"
+        icon: mdi:washing-machine
+        color: blue
+
+      - type: tile
+        entity: sensor.candy_lavasciuga_tempo_rimanente
+        name: "Tempo Residuo"
+        icon: mdi:timer-outline
+        color: cyan
+
+  # Riga 2: Programma e Fase di Ciclo
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.candy_lavasciuga_programma
+        name: "Programma Attivo"
+        icon: mdi:clipboard-list-outline
+
+      - type: tile
+        entity: sensor.candy_lavasciuga_fase
+        name: "Fase Ciclo"
+        icon: mdi:progress-clock
+
+  # Riga 3: Parametri Rapidi (Temperatura, Centrifuga, Asciugatura)
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.candy_lavasciuga_temperatura
+        name: "Temperatura"
+        icon: mdi:thermometer
+
+      - type: tile
+        entity: sensor.candy_lavasciuga_centrifuga
+        name: "Centrifuga"
+        icon: mdi:rotate-right
+
+      - type: tile
+        entity: sensor.candy_lavasciuga_asciugatura
+        name: "Asciugatura"
+        icon: mdi:tumble-dryer
+
+  # Riga 4: Sicurezza e Controlli Fisici (Oblò e Manopola Wi-Fi)
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: binary_sensor.candy_lavasciuga_oblo_bloccato
+        name: "Oblò"
+        state_content: state
+
+      - type: tile
+        entity: binary_sensor.candy_lavasciuga_controllo_remoto
+        name: "Controllo Remoto"
+        state_content: state
+
+  # Riga 5: Selezione e Configurazione Programma Staging
+  - type: entities
+    title: "Impostazione Ciclo di Lavaggio"
+    show_header_toggle: false
+    entities:
+      - entity: select.candy_lavasciuga_selezione_programma
+        name: "Seleziona Programma"
+        icon: mdi:washing-machine
+      - entity: select.candy_lavasciuga_selezione_temperatura
+        name: "Imposta Temperatura (°C)"
+        icon: mdi:thermometer-chevron-up
+      - entity: select.candy_lavasciuga_selezione_centrifuga
+        name: "Imposta Giri Centrifuga (RPM)"
+        icon: mdi:axis-z-rotate-clockwise
+      - entity: select.candy_lavasciuga_selezione_asciugatura
+        name: "Imposta Livello / Tempo Asciugatura"
+        icon: mdi:weather-sunny
+      - entity: number.candy_lavasciuga_partenza_ritardata
+        name: "Partenza Ritardata (Ore)"
+        icon: mdi:clock-start
+
+  # Riga 6: Opzioni Aggiuntive Lavaggio (Switch)
+  - type: entities
+    title: "Opzioni e Trattamenti Speciali"
+    show_header_toggle: false
+    entities:
+      - entity: switch.candy_lavasciuga_prelavaggio
+        name: "Prelavaggio"
+        icon: mdi:spray-bottle
+      - entity: switch.candy_lavasciuga_igiene
+        name: "Igiene+"
+        icon: mdi:shield-check
+      - entity: switch.candy_lavasciuga_risciacquo_extra
+        name: "Risciacquo Extra"
+        icon: mdi:water-plus
+      - entity: switch.candy_lavasciuga_stiro_facile
+        name: "Stiro Facile (Antipiega)"
+        icon: mdi:iron
+      - entity: switch.candy_lavasciuga_trattamento_vapore
+        name: "Trattamento Vapore Igienizzante"
+        icon: mdi:cloud-outline
+
+  # Riga 7: Pulsanti di Controllo e Azione Diretta
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: "Avvia"
+        icon: mdi:play-circle
+        color: green
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavasciuga_avvia_programma
+
+      - type: button
+        name: "Pausa"
+        icon: mdi:pause-circle
+        color: orange
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavasciuga_metti_in_pausa
+
+      - type: button
+        name: "Annulla"
+        icon: mdi:stop-circle
+        color: red
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavasciuga_annulla_stop_ciclo
+
+      - type: button
+        name: "Bip"
+        icon: mdi:volume-high
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.candy_lavasciuga_segnale_acustico
