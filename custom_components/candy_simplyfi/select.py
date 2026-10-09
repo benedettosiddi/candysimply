@@ -108,24 +108,39 @@ class CandyWasherProgramSelect(CandyBaseSelect):
             prog.name_it: prog for prog in WASHER_PROGRAMS.values()
         }
         self._attr_options = list(self._programs_by_name.keys())
-        self._selected_option = list(self._programs_by_name.keys())[0]
+        first_prog = list(self._programs_by_name.values())[0]
+        self._selected_option = first_prog.name_it
+        if self.coordinator.staged_program is None:
+            self.coordinator.staged_program = first_prog
+            self.coordinator.staged_temp = first_prog.default_temp
+            self.coordinator.staged_spin = first_prog.default_spin
 
     @property
     def current_option(self) -> Optional[str]:
-        """Return currently selected or active program name."""
+        """Return currently running program when machine is active, or user-staged program when idle."""
         data = self.coordinator.data or {}
-        pr_val = data.get("pr", 0)
-        pr_code_val = data.get("pr_code")
-        active_prog = get_washer_program_by_pr(pr_val, pr_code_val)
-        if active_prog and active_prog.name_it in self._programs_by_name:
-            return active_prog.name_it
+        if data.get("is_running"):
+            pr_val = data.get("pr", 0)
+            pr_code_val = data.get("pr_code")
+            active_prog = get_washer_program_by_pr(pr_val, pr_code_val)
+            if active_prog and active_prog.name_it in self._programs_by_name:
+                return active_prog.name_it
+
+        if self.coordinator.staged_program and self.coordinator.staged_program.name_it in self._programs_by_name:
+            return self.coordinator.staged_program.name_it
+
         return self._selected_option
 
     async def async_select_option(self, option: str) -> None:
-        """Set the selected program and update coordinator state staging."""
+        """Set the selected program and update coordinator state staging and defaults."""
         self._selected_option = option
-        self.coordinator.data["staged_program"] = self._programs_by_name.get(option)
+        prog = self._programs_by_name.get(option)
+        if prog:
+            self.coordinator.staged_program = prog
+            self.coordinator.staged_temp = prog.default_temp
+            self.coordinator.staged_spin = prog.default_spin
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
 
 class CandyDishwasherProgramSelect(CandyBaseSelect):
@@ -143,25 +158,39 @@ class CandyDishwasherProgramSelect(CandyBaseSelect):
             f"{prog.name_it} ({prog.code})": prog for prog in DISHWASHER_PROGRAMS.values()
         }
         self._attr_options = list(self._programs_by_name.keys())
-        self._selected_option = list(self._programs_by_name.keys())[0]
+        first_prog = list(self._programs_by_name.values())[0]
+        self._selected_option = f"{first_prog.name_it} ({first_prog.code})"
+        if self.coordinator.staged_dw_program is None:
+            self.coordinator.staged_dw_program = first_prog
 
     @property
     def current_option(self) -> Optional[str]:
-        """Return currently running or selected program."""
+        """Return currently running or staged program."""
         data = self.coordinator.data or {}
-        active_code = data.get("program", "P1")
-        prog = get_dishwasher_program_by_code(active_code)
-        if prog:
-            key = f"{prog.name_it} ({prog.code})"
+        if data.get("is_running"):
+            active_code = data.get("program", "P1")
+            prog = get_dishwasher_program_by_code(active_code)
+            if prog:
+                key = f"{prog.name_it} ({prog.code})"
+                if key in self._programs_by_name:
+                    return key
+
+        if self.coordinator.staged_dw_program:
+            p = self.coordinator.staged_dw_program
+            key = f"{p.name_it} ({p.code})"
             if key in self._programs_by_name:
                 return key
+
         return self._selected_option
 
     async def async_select_option(self, option: str) -> None:
         """Select a dishwasher program."""
         self._selected_option = option
-        self.coordinator.data["staged_dw_program"] = self._programs_by_name.get(option)
+        prog = self._programs_by_name.get(option)
+        if prog:
+            self.coordinator.staged_dw_program = prog
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
 
 class CandyTemperatureSelect(CandyBaseSelect):
@@ -182,18 +211,27 @@ class CandyTemperatureSelect(CandyBaseSelect):
     def current_option(self) -> Optional[str]:
         """Return current temperature option."""
         data = self.coordinator.data or {}
-        temp = data.get("temp", 40)
-        formatted = f"{temp}°C" if temp > 0 else "Freddo (0°C)"
-        if formatted in self._attr_options:
-            return formatted
+        if data.get("is_running"):
+            temp = data.get("temp", 40)
+            formatted = f"{temp}°C" if temp > 0 else "Freddo (0°C)"
+            if formatted in self._attr_options:
+                return formatted
+
+        target_temp = self.coordinator.staged_temp
+        if target_temp is not None:
+            formatted = f"{target_temp}°C" if target_temp > 0 else "Freddo (0°C)"
+            if formatted in self._attr_options:
+                return formatted
+
         return self._selected_option
 
     async def async_select_option(self, option: str) -> None:
         """Change staged wash temperature."""
         self._selected_option = option
         val = 0 if "Freddo" in option else int(option.replace("°C", ""))
-        self.coordinator.data["staged_temp"] = val
+        self.coordinator.staged_temp = val
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
 
 class CandySpinSpeedSelect(CandyBaseSelect):
@@ -214,18 +252,27 @@ class CandySpinSpeedSelect(CandyBaseSelect):
     def current_option(self) -> Optional[str]:
         """Return current spin option."""
         data = self.coordinator.data or {}
-        spin = data.get("spin_speed", 1000)
-        formatted = f"{spin} RPM" if spin > 0 else "No Centrifuga (0 RPM)"
-        if formatted in self._attr_options:
-            return formatted
+        if data.get("is_running"):
+            spin = data.get("spin_speed", 1000)
+            formatted = f"{spin} RPM" if spin > 0 else "No Centrifuga (0 RPM)"
+            if formatted in self._attr_options:
+                return formatted
+
+        target_spin = self.coordinator.staged_spin
+        if target_spin is not None:
+            formatted = f"{target_spin} RPM" if target_spin > 0 else "No Centrifuga (0 RPM)"
+            if formatted in self._attr_options:
+                return formatted
+
         return self._selected_option
 
     async def async_select_option(self, option: str) -> None:
         """Change staged spin speed."""
         self._selected_option = option
         val = 0 if "No Centrifuga" in option else int(option.replace(" RPM", ""))
-        self.coordinator.data["staged_spin"] = val
+        self.coordinator.staged_spin = val
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
 
 class CandyDryingSelect(CandyBaseSelect):
@@ -246,10 +293,17 @@ class CandyDryingSelect(CandyBaseSelect):
     def current_option(self) -> Optional[str]:
         """Return current drying setting."""
         data = self.coordinator.data or {}
-        dry_t = str(data.get("dry_t", "0"))
-        name = DRYING_LEVELS.get(dry_t)
-        if name and name in self._attr_options:
-            return name
+        if data.get("is_running") and data.get("is_drying"):
+            dry_t = str(data.get("dry_t", "0"))
+            name = DRYING_LEVELS.get(dry_t)
+            if name and name in self._attr_options:
+                return name
+
+        if self.coordinator.staged_dry_time is not None:
+            for code, label in DRYING_LEVELS.items():
+                if int(code) == self.coordinator.staged_dry_time:
+                    return label
+
         return self._selected_option
 
     async def async_select_option(self, option: str) -> None:
@@ -257,6 +311,7 @@ class CandyDryingSelect(CandyBaseSelect):
         self._selected_option = option
         for code, label in DRYING_LEVELS.items():
             if label == option:
-                self.coordinator.data["staged_dry_time"] = int(code)
+                self.coordinator.staged_dry_time = int(code)
                 break
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()

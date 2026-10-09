@@ -91,17 +91,29 @@ class CandyStartProgramButton(CandyBaseButton):
         client = self.coordinator.client
         app_type = self.coordinator.appliance_type
 
+        # Verify remote control availability
+        if not data.get("remote_control_enabled", True):
+            _LOGGER.warning(
+                "Remote control disabled on appliance %s. Physical dial must be set to Wi-Fi position.",
+                client.host,
+            )
+            from homeassistant.exceptions import HomeAssistantError
+            raise HomeAssistantError(
+                "Il controllo remoto non è attivo sull'elettrodomestico. "
+                "Posiziona la manopola fisica su 'Wi-Fi' o 'Controllo Remoto' per consentire l'avvio del ciclo."
+            )
+
         if app_type == APPLIANCE_TYPE_DISHWASHER:
             # Dishwasher Start
-            staged_prog: Optional[DishwasherProgram] = data.get("staged_dw_program")
+            staged_prog: Optional[DishwasherProgram] = self.coordinator.staged_dw_program or data.get("staged_dw_program")
             prog_code = staged_prog.code if staged_prog else data.get("program", "P1")
 
-            half_load = bool(data.get("staged_half_load", data.get("half_load", False)))
-            tabs_3in1 = bool(data.get("staged_tabs_3in1", data.get("tabs_3in1", False)))
-            extra_dry = bool(data.get("staged_extra_dry", data.get("extra_dry", False)))
-            open_door = bool(data.get("staged_open_door_opt", data.get("open_door_opt", False)))
-            eco = bool(data.get("staged_eco", data.get("eco", False)))
-            delay = int(data.get("staged_delay_start", 0))
+            half_load = bool(self.coordinator.staged_dw_options.get("half_load", data.get("half_load", False)))
+            tabs_3in1 = bool(self.coordinator.staged_dw_options.get("tabs_3in1", data.get("tabs_3in1", False)))
+            extra_dry = bool(self.coordinator.staged_dw_options.get("extra_dry", data.get("extra_dry", False)))
+            open_door = bool(self.coordinator.staged_dw_options.get("open_door_opt", data.get("open_door_opt", False)))
+            eco = bool(self.coordinator.staged_dw_options.get("eco", data.get("eco", False)))
+            delay = int(self.coordinator.staged_delay_start)
 
             _LOGGER.info(
                 "Starting dishwasher %s: program=%s, half_load=%s, tabs=%s, extra_dry=%s, delay=%s",
@@ -124,16 +136,16 @@ class CandyStartProgramButton(CandyBaseButton):
 
         else:
             # Washer / Washer-Dryer Start
-            staged_prog: Optional[WasherProgram] = data.get("staged_program")
+            staged_prog: Optional[WasherProgram] = self.coordinator.staged_program or data.get("staged_program")
             if not staged_prog:
                 # Default to Cottons if none explicitly staged
                 staged_prog = list(WASHER_PROGRAMS.values())[0]
 
-            temp = data.get("staged_temp", staged_prog.default_temp)
-            spin = data.get("staged_spin", staged_prog.default_spin)
-            dry_t = data.get("staged_dry_time")
-            opts = data.get("staged_options", {})
-            delay = int(data.get("staged_delay_start", 0))
+            temp = self.coordinator.staged_temp if self.coordinator.staged_temp is not None else staged_prog.default_temp
+            spin = self.coordinator.staged_spin if self.coordinator.staged_spin is not None else staged_prog.default_spin
+            dry_t = self.coordinator.staged_dry_time
+            opts = dict(self.coordinator.staged_options)
+            delay = int(self.coordinator.staged_delay_start)
 
             _LOGGER.info(
                 "Starting washer %s: pr=%s (%s), pr_code=%s, temp=%s, spin=%s, dry=%s, delay=%s",
@@ -156,6 +168,9 @@ class CandyStartProgramButton(CandyBaseButton):
                 delay_hours=delay,
             )
 
+        # Allow appliance microcontroller time to transition state before querying
+        import asyncio
+        await asyncio.sleep(2.5)
         await self.coordinator.async_request_refresh()
 
 
@@ -169,6 +184,8 @@ class CandyPauseButton(CandyBaseButton):
     async def async_press(self) -> None:
         """Send pause command."""
         await self.coordinator.client.async_pause()
+        import asyncio
+        await asyncio.sleep(2.0)
         await self.coordinator.async_request_refresh()
 
 
@@ -182,6 +199,8 @@ class CandyStopResetButton(CandyBaseButton):
     async def async_press(self) -> None:
         """Send stop/reset command."""
         await self.coordinator.client.async_stop_or_reset()
+        import asyncio
+        await asyncio.sleep(2.0)
         await self.coordinator.async_request_refresh()
 
 

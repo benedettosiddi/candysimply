@@ -6,19 +6,57 @@ from datetime import timedelta
 import logging
 from typing import Any, Dict, Optional
 
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+try:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+except ImportError:
+    HomeAssistant = Any  # type: ignore
 
-from .client import CandyAuthError, CandyClientError, CandyConnectionError, CandyLocalClient
-from .const import (
-    APPLIANCE_TYPE_AUTO,
-    APPLIANCE_TYPE_DISHWASHER,
-    APPLIANCE_TYPE_WASHER,
-    APPLIANCE_TYPE_WASHER_DRYER,
-    DEFAULT_UPDATE_INTERVAL,
-    DOMAIN,
-    ERROR_CODES,
-)
+    from typing import Generic, TypeVar
+    _T = TypeVar("_T")
+
+    class DataUpdateCoordinator(Generic[_T]):  # type: ignore
+        """Mock DataUpdateCoordinator for standalone test environment."""
+
+        def __init__(self, hass: Any, logger: Any, name: str, update_interval: Any) -> None:
+            self.hass = hass
+            self.logger = logger
+            self.name = name
+            self.update_interval = update_interval
+            self.data: Dict[str, Any] = {}
+
+        def async_update_listeners(self) -> None:
+            pass
+
+        async def async_request_refresh(self) -> None:
+            pass
+
+    class UpdateFailed(Exception):  # type: ignore
+        """Mock UpdateFailed exception."""
+        pass
+
+try:
+    from .client import CandyAuthError, CandyClientError, CandyConnectionError, CandyLocalClient
+    from .const import (
+        APPLIANCE_TYPE_AUTO,
+        APPLIANCE_TYPE_DISHWASHER,
+        APPLIANCE_TYPE_WASHER,
+        APPLIANCE_TYPE_WASHER_DRYER,
+        DEFAULT_UPDATE_INTERVAL,
+        DOMAIN,
+        ERROR_CODES,
+    )
+except ImportError:
+    from client import CandyAuthError, CandyClientError, CandyConnectionError, CandyLocalClient  # type: ignore
+    from const import (  # type: ignore
+        APPLIANCE_TYPE_AUTO,
+        APPLIANCE_TYPE_DISHWASHER,
+        APPLIANCE_TYPE_WASHER,
+        APPLIANCE_TYPE_WASHER_DRYER,
+        DEFAULT_UPDATE_INTERVAL,
+        DOMAIN,
+        ERROR_CODES,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +81,16 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self.client = client
         self.appliance_type = appliance_type
         self.unique_id = f"candy_{client.host.replace('.', '_')}"
+
+        # Persistent staged controls across coordinator polls
+        self.staged_program: Optional[Any] = None
+        self.staged_temp: Optional[int] = None
+        self.staged_spin: Optional[int] = None
+        self.staged_dry_time: Optional[int] = None
+        self.staged_options: Dict[str, int] = {}
+        self.staged_dw_program: Optional[Any] = None
+        self.staged_dw_options: Dict[str, bool] = {}
+        self.staged_delay_start: int = 0
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch status from appliance via local API."""
@@ -74,9 +122,10 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         }
 
         # Check for Washer / Washer-Dryer
-        if "statusLavatrice" in raw or self.appliance_type in (
-            APPLIANCE_TYPE_WASHER,
-            APPLIANCE_TYPE_WASHER_DRYER,
+        if (
+            "statusLavatrice" in raw
+            or "statusWD" in raw
+            or self.appliance_type in (APPLIANCE_TYPE_WASHER, APPLIANCE_TYPE_WASHER_DRYER)
         ):
             sub = raw.get("statusLavatrice", raw.get("statusWD", {}))
             
@@ -120,7 +169,6 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             spin_raw = sub.get("SpinSp", 0)
             try:
                 spin_int = int(spin_raw)
-                # Some firmware reports 8 for 800, 10 for 1000, 14 for 1400
                 data["spin_speed"] = spin_int * 100 if spin_int < 20 else spin_int
             except (ValueError, TypeError):
                 data["spin_speed"] = 0
@@ -139,8 +187,18 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["opt7_steam"] = str(sub.get("Opt7", "0")) == "1"
 
             # Door lock & Remote Control status
-            # On Candy, Pr == 16 or Opt8 often indicates the knob is in Wi-Fi position
-            data["remote_control_enabled"] = pr_int == 16 or str(sub.get("Opt8", "0")) == "1"
+            # In Candy washing machines, WiFiStatus == "1" when physical dial is in Wi-Fi / Remote position
+            wifi_stat = str(sub.get("WiFiStatus", "")).strip()
+            stato_wifi = str(sub.get("StatoWiFi", "")).strip()
+            check_wifi = str(sub.get("CheckWiFi", "")).strip()
+            opt8 = str(sub.get("Opt8", "0")).strip()
+            data["remote_control_enabled"] = (
+                wifi_stat == "1"
+                or stato_wifi == "1"
+                or check_wifi == "1"
+                or pr_int == 16
+                or opt8 == "1"
+            )
             data["door_locked"] = str(sub.get("DoorLock", sub.get("DoorState", "0"))) == "1"
 
             # Error code
@@ -152,13 +210,24 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["wifi_status"] = str(sub.get("StatoWiFi", "1")) == "1"
 
         # Check for Dishwasher
-        elif "statusDWash" in raw or self.appliance_type == APPLIANCE_TYPE_DISHWASHER:
-            sub = raw.get("statusDWash", {})
+        elif (
+            "statusDWash" in raw
+            or "statusLavastoviglie" in raw
+            or "StatoDWash" in raw
+            or "statusDishwasher" in raw
+            or self.appliance_type == APPLIANCE_TYPE_DISHWASHER
+        ):
+            sub = (
+                raw.get("statusDWash")
+                or raw.get("statusLavastoviglie")
+                or raw.get("statusDishwasher")
+                or (raw if ("StatoDWash" in raw or "Program" in raw) else {})
+            )
 
             # Dishwasher state
             stato_dwash = str(sub.get("StatoDWash", "1"))
             data["stato_dwash"] = stato_dwash
-            data["is_running"] = stato_dwash == "2"
+            data["is_running"] = stato_dwash in ("2", "3", "4")
             data["is_paused"] = stato_dwash == "3"
             data["is_finished"] = stato_dwash == "5"
 
@@ -182,8 +251,16 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["door_open"] = str(sub.get("OpenDoor", "0")) == "1"
             data["miss_salt"] = str(sub.get("MissSalt", "0")) == "1"
             data["miss_rinse"] = str(sub.get("MissRinse", "0")) == "1"
-            data["eco"] = str(sub.get("Eco", "0")) == "1"
+            data["eco"] = str(sub.get("Eco", sub.get("eco", "0"))) == "1"
             data["buzzer_mute"] = str(sub.get("BM", "0")) == "1"
+
+            # Remote control status for dishwasher
+            data["remote_control_enabled"] = (
+                str(sub.get("StatoWiFi", "")).strip() == "1"
+                or str(sub.get("WiFiStatus", "")).strip() == "1"
+                or str(sub.get("CheckWiFi", "")).strip() == "1"
+                or True
+            )
 
             # Error code
             err_code = str(sub.get("CodiceErrore", "E0")).strip()
@@ -192,5 +269,16 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # Wi-Fi status
             data["wifi_status"] = str(sub.get("StatoWiFi", "1")) == "1"
+
+        # Merge persistent staged selections so UI picks are never wiped out by background polls
+        data["staged_program"] = self.staged_program
+        data["staged_temp"] = self.staged_temp
+        data["staged_spin"] = self.staged_spin
+        data["staged_dry_time"] = self.staged_dry_time
+        data["staged_options"] = dict(self.staged_options)
+        data["staged_dw_program"] = self.staged_dw_program
+        data["staged_delay_start"] = self.staged_delay_start
+        for opt_k, opt_v in self.staged_dw_options.items():
+            data[f"staged_{opt_k}"] = opt_v
 
         return data

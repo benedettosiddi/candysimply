@@ -18,16 +18,21 @@ _MAX_COMBOS = 200000
 
 STATUS_ROOTS = {
     "statusLavatrice": "washer",
+    "statusWD": "washer_dryer",
     "statusTD": "tumbledryer",
     "statusDWash": "dishwasher",
+    "statusLavastoviglie": "dishwasher",
+    "StatoDWash": "dishwasher",
+    "statusDishwasher": "dishwasher",
     "statusForno": "oven",
     "statusHob": "hob",
     "statusRX": "fridge",
-    "statusWD": "washer_dryer",
+    "statusWCool": "wine_cooler",
 }
 
-# Per-host lock to prevent crashing tiny single-threaded appliance web server
+# Per-host lock and rate limiting to prevent crashing appliance microcontrollers
 _HOST_LOCKS: dict[str, asyncio.Lock] = {}
+_HOST_LAST_REQ: dict[str, float] = {}
 _LOCKS_GUARD = asyncio.Lock()
 
 
@@ -200,12 +205,17 @@ class CandyLocalClient:
             await self._session.close()
 
     async def _fetch_url(self, url: str) -> str:
-        """Fetch URL with strict per-host serialization to prevent appliance lockup."""
+        """Fetch URL with strict per-host serialization and rate limiting to prevent appliance lockup."""
         lock = await _get_host_lock(self.host)
         session = await self._get_session()
         async with lock:
-            # Short sleep between requests for tiny microcontroller
-            await asyncio.sleep(0.1)
+            loop = asyncio.get_running_loop()
+            now = loop.time()
+            last_time = _HOST_LAST_REQ.get(self.host, 0.0)
+            elapsed = now - last_time
+            if elapsed < 1.5:
+                await asyncio.sleep(1.5 - elapsed)
+            _HOST_LAST_REQ[self.host] = loop.time()
             async with session.get(url, headers={"Connection": "close"}) as resp:
                 text = await resp.text()
                 if resp.status != 200:
@@ -245,8 +255,26 @@ class CandyLocalClient:
                 except json.JSONDecodeError:
                     pass
 
-            # If encrypted hex response
+            # If hex response
             if re.match(r"^[0-9A-Fa-f]+$", raw_text):
+                # 0. Check if hex response is unencrypted hex-encoded ASCII (Candy Brava / hOn transition)
+                try:
+                    clean_hex = raw_text.strip().replace(" ", "").replace("\r", "").replace("\n", "")
+                    raw_bytes = bytes.fromhex(clean_hex)
+                    decoded_ascii = raw_bytes.decode("utf-8", errors="ignore").strip().strip("\x00").strip()
+                    if (decoded_ascii.startswith("{") and decoded_ascii.endswith("}")) or (
+                        "status" in decoded_ascii or "Stato" in decoded_ascii
+                    ):
+                        cleaned = re.sub(r",\s*([}\]])", r"\1", decoded_ascii)
+                        data = json.loads(cleaned)
+                        _LOGGER.info("Candy appliance at %s returned unencrypted hex response (Brava/Simply-Fi)", self.host)
+                        self.use_encryption = True
+                        self.key = ""
+                        self._detect_type_from_data(data)
+                        return data
+                except Exception as err:
+                    _LOGGER.debug("Hex response is not unencrypted ASCII JSON: %s", err)
+
                 # 1. Try with user-supplied key if present
                 if self.key:
                     try:
@@ -282,7 +310,12 @@ class CandyLocalClient:
                 self.detected_appliance_type = "washer_dryer"
             else:
                 self.detected_appliance_type = "washer"
-        elif "statusDWash" in data:
+        elif (
+            "statusDWash" in data
+            or "statusLavastoviglie" in data
+            or "StatoDWash" in data
+            or "statusDishwasher" in data
+        ):
             self.detected_appliance_type = "dishwasher"
         elif "statusWD" in data:
             self.detected_appliance_type = "washer_dryer"
@@ -300,6 +333,9 @@ class CandyLocalClient:
         if self.use_encryption and self.key:
             enc_hex = encrypt_payload(param_str, self.key)
             url = f"http://{self.host}/http-write.json?encrypted=1&data={enc_hex}"
+        elif self.use_encryption and not self.key:
+            raw_hex = param_str.encode("utf-8").hex().upper()
+            url = f"http://{self.host}/http-write.json?encrypted=1&data={raw_hex}"
         else:
             url = f"http://{self.host}/http-write.json?encrypted=0&{param_str}"
 
@@ -309,6 +345,13 @@ class CandyLocalClient:
             _LOGGER.debug("Candy write reply from %s: %s", self.host, resp_text)
             return True
         except Exception as err:
+            if self.use_encryption and not self.key:
+                fallback_url = f"http://{self.host}/http-write.json?encrypted=0&{param_str}"
+                try:
+                    await self._fetch_url(fallback_url)
+                    return True
+                except Exception:
+                    pass
             raise CandyConnectionError(f"Errore durante l'invio del comando a {self.host}: {err}") from err
 
     async def async_start_program_washer(

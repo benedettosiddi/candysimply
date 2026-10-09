@@ -102,27 +102,29 @@ class CandyWasherOptionSwitch(CandyBaseSwitch):
         super().__init__(coordinator, field_name, name, icon=icon)
         self._field_name = field_name
         self._opt_key = opt_key
-        self._staged_state = False
 
     @property
     def is_on(self) -> bool:
         """Return True if option is set."""
         data = self.coordinator.data or {}
-        active = bool(data.get(self._field_name, False))
-        staged = data.get("staged_options", {}).get(self._opt_key)
-        return staged if staged is not None else active
+        if data.get("is_running"):
+            return bool(data.get(self._field_name, False))
+        staged = self.coordinator.staged_options.get(self._opt_key)
+        if staged is not None:
+            return bool(staged)
+        return bool(data.get(self._field_name, False))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Stage option ON."""
-        opts = self.coordinator.data.setdefault("staged_options", {})
-        opts[self._opt_key] = 1
+        self.coordinator.staged_options[self._opt_key] = 1
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Stage option OFF."""
-        opts = self.coordinator.data.setdefault("staged_options", {})
-        opts[self._opt_key] = 0
+        self.coordinator.staged_options[self._opt_key] = 0
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
 
 class CandyDishwasherOptionSwitch(CandyBaseSwitch):
@@ -143,17 +145,21 @@ class CandyDishwasherOptionSwitch(CandyBaseSwitch):
     def is_on(self) -> bool:
         """Return True if option is active."""
         data = self.coordinator.data or {}
-        staged = data.get(f"staged_{self._field_name}")
+        if data.get("is_running"):
+            return bool(data.get(self._field_name, False))
+        staged = self.coordinator.staged_dw_options.get(self._field_name)
         if staged is not None:
             return bool(staged)
         return bool(data.get(self._field_name, False))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable dishwasher option."""
-        self.coordinator.data[f"staged_{self._field_name}"] = True
+        self.coordinator.staged_dw_options[self._field_name] = True
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable dishwasher option."""
-        self.coordinator.data[f"staged_{self._field_name}"] = False
+        self.coordinator.staged_dw_options[self._field_name] = False
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()

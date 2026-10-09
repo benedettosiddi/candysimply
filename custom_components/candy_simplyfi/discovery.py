@@ -75,7 +75,12 @@ async def async_probe_candy_device(
                         name=f"{name} ({host})",
                         encrypted=False,
                     )
-                if "statusLavastoviglie" in text or "StatoDWash" in text:
+                if (
+                    "statusLavastoviglie" in text
+                    or "statusDWash" in text
+                    or "StatoDWash" in text
+                    or "statusDishwasher" in text
+                ):
                     return DiscoveredCandyDevice(
                         host=host,
                         appliance_type=APPLIANCE_TYPE_DISHWASHER,
@@ -92,13 +97,38 @@ async def async_probe_candy_device(
                 text = (await resp.text()).strip()
                 # Encrypted payload is an even-length hex string of at least 32 chars
                 if len(text) >= 32 and all(c in "0123456789abcdefABCDEF" for c in text):
+                    # Check if unencrypted hex ASCII
+                    try:
+                        clean_hex = text.strip()
+                        raw_bytes = bytes.fromhex(clean_hex)
+                        ascii_str = raw_bytes.decode("utf-8", errors="ignore").strip().strip("\x00").strip()
+                        if "statusLavastoviglie" in ascii_str or "statusDWash" in ascii_str or "StatoDWash" in ascii_str:
+                            return DiscoveredCandyDevice(
+                                host=host,
+                                appliance_type=APPLIANCE_TYPE_DISHWASHER,
+                                name=f"Candy Lavastoviglie Brava ({host})",
+                                encrypted=True,
+                            )
+                        if "statusLavatrice" in ascii_str or "MachMd" in ascii_str:
+                            is_dryer = "DryT" in ascii_str or "DryP" in ascii_str
+                            app_type = APPLIANCE_TYPE_WASHER_DRYER if is_dryer else APPLIANCE_TYPE_WASHER
+                            name = "Candy Lavasciuga" if is_dryer else "Candy Lavatrice"
+                            return DiscoveredCandyDevice(
+                                host=host,
+                                appliance_type=app_type,
+                                name=f"{name} ({host})",
+                                encrypted=True,
+                            )
+                    except Exception:
+                        pass
+
                     # Attempt key recovery to determine appliance type
                     client = CandyLocalClient(host=host, session=session)
                     try:
                         data = await client.async_read_status()
                         app_type = client.detected_appliance_type or APPLIANCE_TYPE_AUTO
                         type_name = "Lavasciuga" if app_type == APPLIANCE_TYPE_WASHER_DRYER else (
-                            "Lavastoviglie" if app_type == APPLIANCE_TYPE_DISHWASHER else "Lavatrice"
+                            "Lavastoviglie Brava" if app_type == APPLIANCE_TYPE_DISHWASHER else "Lavatrice"
                         )
                         return DiscoveredCandyDevice(
                             host=host,
@@ -110,7 +140,7 @@ async def async_probe_candy_device(
                         return DiscoveredCandyDevice(
                             host=host,
                             appliance_type=APPLIANCE_TYPE_AUTO,
-                            name=f"Candy Elettrodomestico Cifrato ({host})",
+                            name=f"Candy Elettrodomestico ({host})",
                             encrypted=True,
                         )
     except Exception:
@@ -119,17 +149,50 @@ async def async_probe_candy_device(
     return None
 
 
+async def _async_get_local_ip_subnets(hass: HomeAssistant) -> List[str]:
+    """Retrieve local IPv4 subnets using Home Assistant network helper or fallback socket."""
+    subnets: List[str] = []
+    if hass is not None:
+        try:
+            from homeassistant.components.network import async_get_source_ip
+            source_ip = await async_get_source_ip(hass)
+            if source_ip and not source_ip.startswith("127."):
+                parts = source_ip.split(".")
+                if len(parts) == 4:
+                    subnets.append(f"{parts[0]}.{parts[1]}.{parts[2]}.0/24")
+        except Exception:
+            pass
+
+    if not subnets:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.1)
+            try:
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+                parts = local_ip.split(".")
+                if len(parts) == 4 and not local_ip.startswith("127."):
+                    subnets.append(f"{parts[0]}.{parts[1]}.{parts[2]}.0/24")
+            finally:
+                s.close()
+        except Exception as err:
+            _LOGGER.debug("Could not resolve local network subnet: %s", err)
+
+    if not subnets:
+        subnets.append("192.168.1.0/24")
+
+    return list(dict.fromkeys(subnets))
+
+
 def _get_local_ip_subnets() -> List[str]:
-    """Retrieve local IPv4 subnets from active network interfaces."""
+    """Retrieve local IPv4 subnets from active network interfaces (synchronous compatibility)."""
     subnets: List[str] = []
     try:
-        # Get host IP by connecting to a dummy external address
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(0.1)
         try:
             s.connect(("8.8.8.8", 80))
             local_ip = s.getsockname()[0]
-            # Construct /24 subnet from local IP
             parts = local_ip.split(".")
             if len(parts) == 4 and not local_ip.startswith("127."):
                 subnets.append(f"{parts[0]}.{parts[1]}.{parts[2]}.0/24")
@@ -177,12 +240,12 @@ def _get_arp_candidate_ips() -> List[str]:
 
 async def async_discover_candy_devices(
     hass: HomeAssistant,
-    max_hosts_to_scan: int = 50,
+    max_hosts_to_scan: int = 254,
     timeout_per_probe: float = 1.0,
 ) -> List[DiscoveredCandyDevice]:
     """Scan local subnet for Candy appliances concurrently, prioritizing Espressif devices."""
     session = async_get_clientsession(hass)
-    subnets = _get_local_ip_subnets()
+    subnets = await _async_get_local_ip_subnets(hass)
     found_devices: List[DiscoveredCandyDevice] = []
     seen_ips: set[str] = set()
 
@@ -197,13 +260,13 @@ async def async_discover_candy_devices(
             _LOGGER.info("Fast-tracked Candy appliance discovered via ARP OUI at %s", candidate_ip)
             found_devices.append(dev)
 
-    # 2. Subnet scan for remaining hosts
+    # 2. Subnet scan for all remaining hosts (range 1..254)
     for subnet_str in subnets:
         try:
             net = ipaddress.ip_network(subnet_str, strict=False)
             hosts = [str(ip) for ip in net.hosts() if str(ip) not in seen_ips][:max_hosts_to_scan]
 
-            semaphore = asyncio.Semaphore(25)
+            semaphore = asyncio.Semaphore(35)
 
             async def _probe_with_limit(ip_str: str) -> Optional[DiscoveredCandyDevice]:
                 async with semaphore:

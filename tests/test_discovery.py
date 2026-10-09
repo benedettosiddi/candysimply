@@ -100,6 +100,36 @@ async def test_probe_non_candy_device():
     assert result is None
 
 
+@pytest.mark.asyncio
+async def test_probe_candy_brava_hex():
+    """Test probing Candy Brava dishwasher via encrypted=1 returning hex."""
+    mock_session = MagicMock(spec=aiohttp.ClientSession)
+
+    # First get (encrypted=0) returns 404 or non-matching
+    mock_resp0 = AsyncMock()
+    mock_resp0.status = 404
+    mock_resp0.text.return_value = "Not Found"
+
+    # Second get (encrypted=1) returns hex ASCII with statusLavastoviglie
+    raw_payload = '{"statusLavastoviglie":{"StatoDWash":"1","Program":"P1"}}'
+    hex_ascii = raw_payload.encode("utf-8").hex().upper()
+
+    mock_resp1 = AsyncMock()
+    mock_resp1.status = 200
+    mock_resp1.text.return_value = hex_ascii
+
+    mock_session.get.side_effect = [
+        AsyncMock(__aenter__=AsyncMock(return_value=mock_resp0)),
+        AsyncMock(__aenter__=AsyncMock(return_value=mock_resp1)),
+    ]
+
+    result = await async_probe_candy_device("192.168.1.180", mock_session, timeout=0.5)
+    assert result is not None
+    assert result.host == "192.168.1.180"
+    assert result.appliance_type == APPLIANCE_TYPE_DISHWASHER
+    assert "Brava" in result.name or "Lavastoviglie" in result.name
+
+
 def test_get_local_ip_subnets():
     """Test local subnet resolution helper."""
     subnets = _get_local_ip_subnets()

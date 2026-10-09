@@ -56,7 +56,14 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_manual()
                 self._discovered_host = selected
                 self._discovered_name = f"Candy ({selected})"
-                return await self.async_step_discovery_confirm()
+                # Automatically attempt setup with auto-detected encryption
+                return await self._async_create_candy_entry(
+                    ip_address=selected,
+                    key="",
+                    appliance_type=APPLIANCE_TYPE_AUTO,
+                    errors=errors,
+                    step_id="discovery_confirm",
+                )
 
             ip_address = user_input.get(CONF_IP_ADDRESS, "").strip()
             if ip_address:
@@ -70,8 +77,8 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     step_id="manual",
                 )
 
-        # Proactively scan LAN for Candy devices
-        discovered = await async_discover_candy_devices(self.hass, max_hosts_to_scan=40)
+        # Proactively scan full LAN subnet for Candy devices
+        discovered = await async_discover_candy_devices(self.hass, max_hosts_to_scan=254)
         if discovered:
             device_options = {d.host: d.name for d in discovered}
             device_options[MANUAL_IP] = "Inserisci indirizzo IP manualmente..."
@@ -285,16 +292,27 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected error during Candy setup: %s", err)
             errors["base"] = "unknown"
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_IP_ADDRESS, default=ip_address): str,
-                vol.Optional(CONF_KEY, default=key): str,
-                vol.Optional(CONF_AUTO_DETECT_KEY, default=True): bool,
-                vol.Optional(CONF_APPLIANCE_TYPE, default=appliance_type): vol.In(
-                    APPLIANCE_TYPES
-                ),
-            }
-        )
+        if step_id == "discovery_confirm":
+            schema = vol.Schema(
+                {
+                    vol.Optional(CONF_KEY, default=key): str,
+                    vol.Optional(CONF_AUTO_DETECT_KEY, default=True): bool,
+                    vol.Optional(CONF_APPLIANCE_TYPE, default=appliance_type): vol.In(
+                        APPLIANCE_TYPES
+                    ),
+                }
+            )
+        else:
+            schema = vol.Schema(
+                {
+                    vol.Required(CONF_IP_ADDRESS, default=ip_address): str,
+                    vol.Optional(CONF_KEY, default=key): str,
+                    vol.Optional(CONF_AUTO_DETECT_KEY, default=True): bool,
+                    vol.Optional(CONF_APPLIANCE_TYPE, default=appliance_type): vol.In(
+                        APPLIANCE_TYPES
+                    ),
+                }
+            )
         return self.async_show_form(
             step_id=step_id,
             data_schema=schema,

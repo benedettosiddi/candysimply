@@ -62,13 +62,13 @@ class CandyDelayStartNumber(CoordinatorEntity[CandyDataUpdateCoordinator], Numbe
     def native_value(self) -> float:
         """Return staged or active delay hours."""
         data = self.coordinator.data or {}
-        staged = data.get("staged_delay_start")
-        if staged is not None:
-            return float(staged)
-        return float(self._value)
+        if data.get("is_running"):
+            return float(data.get("delay_value", 0))
+        return float(self.coordinator.staged_delay_start)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set staged delay hours."""
         self._value = int(value)
-        self.coordinator.data["staged_delay_start"] = int(value)
+        self.coordinator.staged_delay_start = int(value)
         self.async_write_ha_state()
+        self.coordinator.async_update_listeners()

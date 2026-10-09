@@ -75,14 +75,27 @@ def test_key_recovery_dishwasher():
     assert data["statusDWash"]["Program"] == "P1"
 
 
-def test_key_recovery_dishwasher_pretty():
-    key = "candytestkey1234"
-    raw_json = '{\r\n\t"statusDWash":{\r\n\t\t"StatoDWash":"1",\r\n\t\t"Program":"P3"\r\n\t}\r\n}'
+def test_key_recovery_candy_brava_dishwasher():
+    """Test key recovery on Candy Brava payload using statusLavastoviglie root key."""
+    key = "bravadishwash123"
+    raw_json = '{\r\n\t"statusLavastoviglie":{\r\n\t\t"StatoDWash":"1",\r\n\t\t"Program":"P2",\r\n\t\t"RemTime":"150"\r\n\t}\r\n}'
     encrypted_hex = encrypt_payload(raw_json, key)
     recovered = recover_xor_key(encrypted_hex)
     assert recovered is not None
     recovered_key, data = recovered
     assert recovered_key == key
+    assert data["statusLavastoviglie"]["Program"] == "P2"
+
+
+def test_candy_brava_unencrypted_hex_detection():
+    """Test Candy Brava unencrypted hex format where bytes.fromhex is plaintext ASCII."""
+    raw_json = '{"statusLavastoviglie":{"StatoDWash":"1","Program":"P3","RemTime":"90","StatoWiFi":"1"}}'
+    hex_ascii = raw_json.encode("utf-8").hex().upper()
+    raw_bytes = bytes.fromhex(hex_ascii)
+    decoded = raw_bytes.decode("utf-8")
+    parsed = json.loads(decoded)
+    assert parsed["statusLavastoviglie"]["Program"] == "P3"
+    assert parsed["statusLavastoviglie"]["StatoWiFi"] == "1"
 
 
 if __name__ == "__main__":
@@ -91,4 +104,6 @@ if __name__ == "__main__":
     test_key_recovery_crlf_tabs_washer()
     test_key_recovery_dishwasher()
     test_key_recovery_dishwasher_pretty()
+    test_key_recovery_candy_brava_dishwasher()
+    test_candy_brava_unencrypted_hex_detection()
     print("ALL ENCRYPTION & KEY RECOVERY TESTS PASSED 100%!")
