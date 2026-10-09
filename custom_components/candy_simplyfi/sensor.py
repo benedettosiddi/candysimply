@@ -206,6 +206,9 @@ class CandyProgramPhaseSensor(CandyBaseSensor):
         """Return phase description."""
         data = self.coordinator.data or {}
         phase_raw = str(data.get("pr_ph", "0"))
+        pr_code = data.get("pr_code")
+        if pr_code == 45 and phase_raw == "2":
+            return "Generazione Vapore & Distensione Fibre"
         return WASHER_PHASES.get(phase_raw, f"Fase {phase_raw}")
 
 

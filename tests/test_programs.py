@@ -51,6 +51,18 @@ def test_washer_programs_count():
     assert pet_hair_prog is not None
     assert "Animali" in pet_hair_prog.name_it
 
+    # Check steam refresh lookup (Pr 15, PrCode 45)
+    steam_prog = get_washer_program_by_pr(15, 45)
+    assert steam_prog is not None
+    assert steam_prog.id == "wd_steam_refresh"
+    assert "Vapore" in steam_prog.name_it
+
+    # Check easy iron lookup (Pr 13, PrCode 30)
+    easy_iron = get_washer_program_by_pr(13, 30)
+    assert easy_iron is not None
+    assert easy_iron.id == "easy_iron"
+    assert "Stiro Facile" in easy_iron.name_it
+
 
 def test_time_formatting():
     assert format_remaining_time(0) == "Completato / Pronto"

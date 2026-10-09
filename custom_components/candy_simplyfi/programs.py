@@ -223,17 +223,17 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
     ),
     "easy_iron": WasherProgram(
         id="easy_iron",
-        name_it="Stiro Facile / Vapore Refresh",
-        name_en="Easy Iron / Steam Refresh",
+        name_it="Stiro Facile / Special 39'",
+        name_en="Easy Iron / Special 39 Min",
         pr=13,
-        pr_code=45,
+        pr_code=30,
         default_temp=30,
         max_temp=40,
         default_spin=800,
         max_spin=1000,
         supports_drying=False,
         supports_steam=True,
-        description="Azione combinata di vapore e centrifuga dolce per ridurre le pieghe.",
+        description="Ciclo di lavaggio a 30°C con azione combinata antipiega per facilitare la stiratura.",
     ),
     "sport_fitness": WasherProgram(
         id="sport_fitness",
@@ -411,7 +411,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
     ),
     "wd_steam_refresh": WasherProgram(
         id="wd_steam_refresh",
-        name_it="Rinfresca a Vapore & Deodora",
+        name_it="Rinfresca a Vapore / Vapore Refresh",
         name_en="Steam Refresh & Deodorize",
         pr=15,
         pr_code=45,
@@ -421,7 +421,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         max_spin=0,
         supports_drying=False,
         supports_steam=True,
-        description="Elimina odori e distende le pieghe in 25 minuti senza lavare.",
+        description="Trattamento a solo vapore (20-25 min): carica un minimo d'acqua sulla resistenza per generare vapore caldo che distende le pieghe e deodora senza lavare né centrifugare.",
     ),
 }
 
@@ -651,9 +651,15 @@ DISHWASHER_PROGRAMS: Dict[str, DishwasherProgram] = {
 def get_washer_program_by_pr(pr_val: int, pr_code_val: Optional[int] = None) -> Optional[WasherProgram]:
     """Find washer program matching Pr and optionally PrCode."""
     if pr_code_val is not None:
+        # 1. Exact match on both knob dial position (Pr) and internal cycle code (PrCode)
+        for prog in WASHER_PROGRAMS.values():
+            if prog.pr == pr_val and prog.pr_code == pr_code_val:
+                return prog
+        # 2. Match on PrCode if specific
         for prog in WASHER_PROGRAMS.values():
             if prog.pr_code == pr_code_val:
                 return prog
+    # 3. Fallback match on Pr dial position
     for prog in WASHER_PROGRAMS.values():
         if prog.pr == pr_val:
             return prog

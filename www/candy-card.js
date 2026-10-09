@@ -1751,4 +1751,4 @@ if (!window.customCards.some(card => card.type === 'candy-card')) {
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.2 Gestione Standby Lavastoviglie & Discovery Deduplication ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.3 Allineamento Programmi Vapore & Countdown DelVal ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');

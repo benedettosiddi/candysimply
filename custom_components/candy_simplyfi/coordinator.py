@@ -238,11 +238,24 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["pr_ph"] = str(sub.get("PrPh", "0"))
 
             # Remaining time
+            del_val_raw = sub.get("DelVal", "255")
+            try:
+                del_val = int(del_val_raw)
+            except (ValueError, TypeError):
+                del_val = 255
+
             rem_time_raw = sub.get("RemTime", sub.get("Ssec", 0))
             try:
-                data["rem_time_raw"] = int(rem_time_raw)
+                rem_time_sec = int(rem_time_raw)
             except (ValueError, TypeError):
-                data["rem_time_raw"] = 0
+                rem_time_sec = 0
+
+            # On Candy Simply-Fi washers/washer-dryers, DelVal reports the countdown in minutes (1..254).
+            # When DelVal is active (not 0, not 255) and RemTime is a 60s pulse (<= 60):
+            if 0 < del_val < 255 and rem_time_sec <= 60:
+                data["rem_time_raw"] = del_val * 60
+            else:
+                data["rem_time_raw"] = rem_time_sec
 
             # Temperature and Spin
             try:

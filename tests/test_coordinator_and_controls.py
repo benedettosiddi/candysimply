@@ -355,6 +355,36 @@ def test_coordinator_dishwasher_standby_vs_running():
     assert parsed_paused["is_paused"] is True
 
 
+def test_coordinator_delval_minute_countdown():
+    """Verify that when DelVal is actively counting down (e.g. 19 min) and RemTime is 60, remaining time is 19 min."""
+    mock_hass = MagicMock()
+    mock_client = MagicMock()
+    mock_client.host = "192.168.2.73"
+
+    coordinator = CandyDataUpdateCoordinator(
+        hass=mock_hass,
+        client=mock_client,
+        appliance_type="washer",
+    )
+
+    steam_raw = {
+        "statusLavatrice": {
+            "MachMd": "2",
+            "Pr": "15",
+            "PrPh": "2",
+            "PrCode": "45",
+            "DelVal": "19",
+            "RemTime": "60",
+            "FillR": "12",
+        }
+    }
+    parsed = coordinator._parse_data(steam_raw)
+    assert parsed["rem_time_raw"] == 19 * 60
+    assert programs_mod.format_remaining_time(parsed["rem_time_raw"]) == "19 min"
+    assert parsed["pr"] == 15
+    assert parsed["pr_code"] == 45
+
+
 if __name__ == "__main__":
     test_coordinator_washer_remote_control_wifistatus()
     test_coordinator_staged_settings_preserved_across_updates()
@@ -363,6 +393,7 @@ if __name__ == "__main__":
     test_coordinator_washer_door_locked()
     test_format_remaining_time()
     test_coordinator_dishwasher_standby_vs_running()
+    test_coordinator_delval_minute_countdown()
     print("ALL COORDINATOR & CONTROLS TESTS PASSED 100%!")
 
 
