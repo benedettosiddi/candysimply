@@ -1,0 +1,11 @@
+{
+  "domain": "candy_simplyfi",
+  "name": "Candy Simply-Fi Local",
+  "version": "1.0.0",
+  "documentation": "https://github.com/benedettosiddi/candysimply",
+  "issue_tracker": "https://github.com/benedettosiddi/candysimply/issues",
+  "dependencies": [],
+  "codeowners": ["@benedettosiddi"],
+  "config_flow": true,
+  "iot_class": "local_polling"
+}

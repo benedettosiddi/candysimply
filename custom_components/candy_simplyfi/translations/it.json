@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Candy Simply-Fi Locale",
+        "description": "Configura la connessione locale al tuo elettrodomestico Candy o Hoover. Il controllo è 100% locale senza dipendere dal cloud Simply-Fi.",
+        "data": {
+          "ip_address": "Indirizzo IP locale",
+          "key": "Chiave di crittografia (16 caratteri - opzionale se auto-rilevata)",
+          "auto_detect_key": "Rileva e recupera automaticamente la chiave XOR",
+          "appliance_type": "Tipologia Elettrodomestico"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi all'elettrodomestico. Verifica che l'IP sia corretto e acceso.",
+      "invalid_auth": "Chiave di crittografia errata o impossibile decifrare la risposta dell'elettrodomestico.",
+      "unknown": "Errore imprevisto durante la connessione."
+    },
+    "abort": {
+      "already_configured": "Questo dispositivo è già configurato in Home Assistant."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Candy Simply-Fi",
+        "data": {
+          "update_interval": "Intervallo di aggiornamento stato (secondi)",
+          "appliance_type": "Tipologia Elettrodomestico"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Candy Simply-Fi Local",
+        "description": "Configure 100% local connection to your Candy or Hoover Simply-Fi appliance.",
+        "data": {
+          "ip_address": "Local IP Address",
+          "key": "Encryption Key (16 characters - optional if auto-detected)",
+          "auto_detect_key": "Automatically detect and recover XOR key",
+          "appliance_type": "Appliance Type"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the appliance. Please check IP and power.",
+      "invalid_auth": "Invalid encryption key or could not decrypt appliance response.",
+      "unknown": "Unexpected error while connecting."
+    },
+    "abort": {
+      "already_configured": "This appliance is already configured in Home Assistant."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Candy Simply-Fi Options",
+        "data": {
+          "update_interval": "Status update interval (seconds)",
+          "appliance_type": "Appliance Type"
+        }
+      }
+    }
+  }
+}
