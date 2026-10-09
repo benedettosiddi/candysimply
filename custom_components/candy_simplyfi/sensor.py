@@ -217,20 +217,22 @@ class CandyRemainingTimeSensor(CandyBaseSensor):
         """Return formatted remaining time string."""
         data = self.coordinator.data or {}
         raw_val = data.get("rem_time_raw", 0)
-        return format_remaining_time(raw_val)
+        is_dw = self.coordinator.appliance_type == APPLIANCE_TYPE_DISHWASHER
+        return format_remaining_time(raw_val, is_dishwasher=is_dw)
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return raw seconds and minutes."""
         data = self.coordinator.data or {}
         raw = data.get("rem_time_raw", 0)
+        is_dw = self.coordinator.appliance_type == APPLIANCE_TYPE_DISHWASHER
         try:
             val = int(raw)
-            minutes = val if val <= 300 else round(val / 60)
+            minutes = val if is_dw else round(val / 60)
         except (ValueError, TypeError):
             val = 0
             minutes = 0
-        return {"raw_value": val, "remaining_minutes": minutes}
+        return {"raw_value": val, "remaining_minutes": minutes, "is_dishwasher": is_dw}
 
 
 class CandyTemperatureSensor(CandyBaseSensor):

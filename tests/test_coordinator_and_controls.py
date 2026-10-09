@@ -281,3 +281,23 @@ def test_coordinator_washer_door_locked():
     assert parsed3["door_locked"] is True
 
 
+def test_format_remaining_time():
+    """Verify format_remaining_time accurately converts washer seconds and dishwasher minutes."""
+    format_time = programs_mod.format_remaining_time
+
+    # Washer seconds
+    assert format_time(240, is_dishwasher=False) == "4 min"
+    assert format_time(300, is_dishwasher=False) == "5 min"
+    assert format_time(60, is_dishwasher=False) == "1 min"
+    assert format_time(960, is_dishwasher=False) == "16 min"
+    assert format_time(3600, is_dishwasher=False) == "1h 00m"
+    assert format_time(5400, is_dishwasher=False) == "1h 30m"
+    assert format_time(0, is_dishwasher=False) == "Completato / Pronto"
+
+    # Dishwasher minutes
+    assert format_time(230, is_dishwasher=True) == "3h 50m"
+    assert format_time(45, is_dishwasher=True) == "45 min"
+    assert format_time(0, is_dishwasher=True) == "Completato / Pronto"
+
+
+

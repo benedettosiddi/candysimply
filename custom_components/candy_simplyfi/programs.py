@@ -666,8 +666,8 @@ def get_dishwasher_program_by_code(code_str: str) -> Optional[DishwasherProgram]
         clean_code = f"P{clean_code}"
     return DISHWASHER_PROGRAMS.get(clean_code)
 
-def format_remaining_time(raw_val: any) -> str:
-    """Format remaining time into human readable '1h 30m' or '45m' string."""
+def format_remaining_time(raw_val: any, is_dishwasher: bool = False) -> str:
+    """Format remaining time into human readable '1h 30m' or '45 min' string."""
     try:
         val = int(raw_val)
     except (ValueError, TypeError):
@@ -676,11 +676,12 @@ def format_remaining_time(raw_val: any) -> str:
     if val <= 0:
         return "Completato / Pronto"
 
-    # Some firmware reports seconds (> 300) while other reports minutes
-    if val > 300:
-        minutes = round(val / 60)
-    else:
+    if is_dishwasher:
+        # Dishwashers transmit RemTime in minutes directly
         minutes = val
+    else:
+        # Candy washers transmit RemTime in seconds
+        minutes = round(val / 60)
 
     hours = minutes // 60
     rem_min = minutes % 60

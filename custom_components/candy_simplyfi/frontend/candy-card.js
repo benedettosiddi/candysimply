@@ -149,9 +149,9 @@ class CandyCard extends HTMLElement {
       remainingTime: this._findEntity(['tempo_rimanente', 'remaining_time', 'time_remaining', 'rem_time'], 'sensor'),
       errorCode: this._findEntity(['codice_errore', 'errore', 'error_code', 'error'], 'sensor'),
       phase: !isDishwasher ? this._findEntity(['fase_del_ciclo', 'fase', 'program_phase', 'phase'], 'sensor') : null,
-      temp: !isDishwasher ? this._findEntity(['temperatura', 'temperature', 'temp_lavaggio', '_temp'], 'sensor') : null,
-      spin: !isDishwasher ? this._findEntity(['centrifuga', 'spin_speed', 'spin'], 'sensor') : null,
-      dry: !isDishwasher ? this._findEntity(['asciugatura', 'drying_level', 'dry_level', 'dry_time'], 'sensor') : null,
+      temp: !isDishwasher ? this._findEntity(['temperatura_selezionata', 'temperatura', 'temperature', 'temp_lavaggio', '_temp'], 'sensor') : null,
+      spin: !isDishwasher ? this._findEntity(['velocita_centrifuga', 'centrifuga', 'spin_speed', 'spin'], 'sensor') : null,
+      dry: !isDishwasher ? this._findEntity(['modalita_asciugatura', 'livello_asciugatura', 'asciugatura', 'drying_level', 'dry_level', 'dry_time'], 'sensor') : null,
 
       running: this._findEntity(['in_funzione', 'is_running', 'running'], 'binary_sensor'),
       doorLocked: !isDishwasher ? this._findEntity(['oblo_bloccato_sicurezza', 'oblo_bloccato', 'door_locked'], 'binary_sensor') : null,
@@ -209,10 +209,19 @@ class CandyCard extends HTMLElement {
    * per determinare il profilo fisico di animazione esatto.
    */
   _computeAnimationProfile(entities, isDishwasher) {
+    const statusVal = (entities.status?.state?.state || 'Standby').toLowerCase();
+    const progVal = (entities.program?.state?.state || '').toLowerCase();
+    const phaseVal = (entities.phase?.state?.state || '').toLowerCase();
+
     const rawTempState = String(entities.temp?.state?.state || '');
-    const parsedTemp = (!rawTempState.toLowerCase().includes('min') && !rawTempState.toLowerCase().includes('tempo')) ? parseInt(rawTempState, 10) : NaN;
-    const tempVal = !isNaN(parsedTemp) ? parsedTemp : 40;
-    const spinVal = parseInt(entities.spin?.state?.state || '1000', 10) || 1000;
+    const cleanTempStr = rawTempState.replace(',', '.');
+    const parsedTemp = (!rawTempState.toLowerCase().includes('min') && !rawTempState.toLowerCase().includes('tempo') && !rawTempState.toLowerCase().includes('h')) ? parseFloat(cleanTempStr) : NaN;
+    const tempVal = !isNaN(parsedTemp) ? Math.round(parsedTemp) : 40;
+
+    const rawSpinState = String(entities.spin?.state?.state || '');
+    const parsedSpin = parseInt(rawSpinState, 10);
+    const spinVal = !isNaN(parsedSpin) ? parsedSpin : 0;
+
     const isRunning = entities.running?.state?.state === 'on' ||
                       statusVal.includes('funzione') || statusVal === '2' ||
                       (phaseVal && !phaseVal.includes('non avviato') && !phaseVal.includes('terminato') && phaseVal !== '0' && phaseVal !== '6');
@@ -311,17 +320,25 @@ class CandyCard extends HTMLElement {
     } else {
       // 1. Centrifuga
       if (phaseVal.includes('centrifuga') || phaseVal === '4' || progVal.includes('centrifuga')) {
-        washerMode = 'spin';
-        // Durata rotazione proporzionale ai giri RPM
-        if (spinVal >= 1400) spinDuration = '0.22s';
-        else if (spinVal >= 1200) spinDuration = '0.28s';
-        else if (spinVal >= 1000) spinDuration = '0.36s';
-        else if (spinVal >= 800) spinDuration = '0.48s';
-        else if (spinVal >= 400) spinDuration = '0.75s';
-        else spinDuration = '1.2s';
-        waterLevel = 5;
-        hasBubbles = false;
-        description = `Centrifuga rapida attiva a ${spinVal} RPM`;
+        if (spinVal > 0) {
+          washerMode = 'spin';
+          // Durata rotazione proporzionale ai giri RPM
+          if (spinVal >= 1400) spinDuration = '0.22s';
+          else if (spinVal >= 1200) spinDuration = '0.28s';
+          else if (spinVal >= 1000) spinDuration = '0.36s';
+          else if (spinVal >= 800) spinDuration = '0.48s';
+          else if (spinVal >= 400) spinDuration = '0.75s';
+          else spinDuration = '1.2s';
+          waterLevel = 5;
+          hasBubbles = false;
+          description = `Centrifuga rapida attiva a ${spinVal} RPM`;
+        } else {
+          washerMode = 'wash';
+          spinDuration = '3.8s';
+          waterLevel = 0;
+          hasBubbles = false;
+          description = 'Scarico acqua e distensione bucato';
+        }
       }
       // 2. Asciugatura
       else if (isDryingActive) {
@@ -514,10 +531,11 @@ class CandyCard extends HTMLElement {
       const chipTemp = this.shadowRoot.querySelector('.chip-temp .val');
       if (chipTemp) {
         const rawTemp = String(entities.temp?.state?.state || '');
-        const numTemp = parseInt(rawTemp, 10);
-        if (!isNaN(numTemp) && !rawTemp.toLowerCase().includes('min') && !rawTemp.toLowerCase().includes('tempo') && numTemp > 0) {
-          chipTemp.textContent = `${numTemp}°C`;
-        } else if (rawTemp === '0' || rawTemp.toLowerCase().includes('freddo')) {
+        const cleanT = rawTemp.replace(',', '.');
+        const numTemp = parseFloat(cleanT);
+        if (!isNaN(numTemp) && !rawTemp.toLowerCase().includes('min') && !rawTemp.toLowerCase().includes('tempo') && !rawTemp.toLowerCase().includes('h') && numTemp > 0) {
+          chipTemp.textContent = `${Math.round(numTemp)}°C`;
+        } else if (numTemp === 0 || rawTemp.startsWith('0') || rawTemp.toLowerCase().includes('freddo')) {
           chipTemp.textContent = 'Freddo';
         } else {
           chipTemp.textContent = '--';
@@ -530,7 +548,7 @@ class CandyCard extends HTMLElement {
         const numSpin = parseInt(rawSpin, 10);
         if (!isNaN(numSpin) && numSpin > 0) {
           chipSpin.textContent = `${numSpin} rpm`;
-        } else if (rawSpin === '0') {
+        } else if (numSpin === 0 || rawSpin.startsWith('0') || rawSpin.toLowerCase().includes('no centrifuga')) {
           chipSpin.textContent = 'No centrifuga';
         } else {
           chipSpin.textContent = '--';
