@@ -103,7 +103,6 @@ if __name__ == "__main__":
     test_key_recovery_compact_washer()
     test_key_recovery_crlf_tabs_washer()
     test_key_recovery_dishwasher()
-    test_key_recovery_dishwasher_pretty()
     test_key_recovery_candy_brava_dishwasher()
     test_candy_brava_unencrypted_hex_detection()
     print("ALL ENCRYPTION & KEY RECOVERY TESTS PASSED 100%!")

@@ -147,10 +147,25 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # Dishwasher state
             stato_dwash = str(sub.get("StatoDWash", "1"))
+            start_stop = str(sub.get("StartStop", "")).strip()
+
             data["stato_dwash"] = stato_dwash
-            data["is_running"] = stato_dwash in ("2", "3", "4")
-            data["is_paused"] = stato_dwash == "3"
-            data["is_finished"] = stato_dwash == "5"
+            data["start_stop"] = start_stop
+
+            is_finished = stato_dwash == "5"
+            data["is_finished"] = is_finished
+
+            # In Candy Brava dishwashers, StartStop="1" signifies the cycle is actively running.
+            # When the dishwasher is turned on / program dialed in but not yet started, StartStop="0".
+            if start_stop == "1":
+                data["is_running"] = stato_dwash in ("2", "4")
+                data["is_paused"] = stato_dwash == "3"
+            elif start_stop == "0":
+                data["is_running"] = False
+                data["is_paused"] = False
+            else:
+                data["is_running"] = stato_dwash in ("2", "4")
+                data["is_paused"] = stato_dwash == "3"
 
             # Program
             prog_raw = str(sub.get("Program", "P1")).strip().upper()

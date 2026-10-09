@@ -300,4 +300,70 @@ def test_format_remaining_time():
     assert format_time(0, is_dishwasher=True) == "Completato / Pronto"
 
 
+def test_coordinator_dishwasher_standby_vs_running():
+    """Verify that dishwasher with StartStop=0 is reported as standby (is_running=False) even if dial is set."""
+    mock_hass = MagicMock()
+    mock_client = MagicMock()
+    mock_client.host = "192.168.2.70"
+
+    coordinator = CandyDataUpdateCoordinator(
+        hass=mock_hass,
+        client=mock_client,
+        appliance_type="dishwasher",
+    )
+
+    # 1. Standby: dial set to P2, RemTime 130, StartStop="0" (user has not pressed Start)
+    standby_raw = {
+        "statusDWash": {
+            "StatoDWash": "2",
+            "StartStop": "0",
+            "Program": "P2",
+            "RemTime": "130",
+        }
+    }
+    parsed_standby = coordinator._parse_data(standby_raw)
+    assert parsed_standby["is_running"] is False
+    assert parsed_standby["is_paused"] is False
+    assert parsed_standby["is_finished"] is False
+    assert parsed_standby["start_stop"] == "0"
+
+    # 2. Running: dial at P2, StartStop="1" (cycle actively underway)
+    running_raw = {
+        "statusDWash": {
+            "StatoDWash": "2",
+            "StartStop": "1",
+            "Program": "P2",
+            "RemTime": "125",
+        }
+    }
+    parsed_running = coordinator._parse_data(running_raw)
+    assert parsed_running["is_running"] is True
+    assert parsed_running["is_paused"] is False
+    assert parsed_running["start_stop"] == "1"
+
+    # 3. Paused: dial at P2, StartStop="1", StatoDWash="3"
+    paused_raw = {
+        "statusDWash": {
+            "StatoDWash": "3",
+            "StartStop": "1",
+            "Program": "P2",
+            "RemTime": "125",
+        }
+    }
+    parsed_paused = coordinator._parse_data(paused_raw)
+    assert parsed_paused["is_running"] is False
+    assert parsed_paused["is_paused"] is True
+
+
+if __name__ == "__main__":
+    test_coordinator_washer_remote_control_wifistatus()
+    test_coordinator_staged_settings_preserved_across_updates()
+    test_coordinator_dishwasher_status_dwash_parsing()
+    test_get_device_model_name()
+    test_coordinator_washer_door_locked()
+    test_format_remaining_time()
+    test_coordinator_dishwasher_standby_vs_running()
+    print("ALL COORDINATOR & CONTROLS TESTS PASSED 100%!")
+
+
 

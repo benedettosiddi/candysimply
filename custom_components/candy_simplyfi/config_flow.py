@@ -76,9 +76,16 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Proactively scan full LAN subnet for Candy devices
         discovered = await async_discover_candy_devices(self.hass, max_hosts_to_scan=254)
-        if discovered:
-            self._discovered_map = {d.host: d for d in discovered}
-            device_options = {d.host: d.name for d in discovered}
+        configured_hosts = {
+            entry.data.get(CONF_IP_ADDRESS)
+            for entry in self._async_current_entries()
+            if entry.data.get(CONF_IP_ADDRESS)
+        }
+        unconfigured = [d for d in discovered if d.host not in configured_hosts]
+
+        if unconfigured:
+            self._discovered_map = {d.host: d for d in unconfigured}
+            device_options = {d.host: d.name for d in unconfigured}
             device_options[MANUAL_IP] = "Inserisci indirizzo IP manualmente..."
 
             schema = vol.Schema(
@@ -141,54 +148,18 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not host:
             return self.async_abort(reason="cannot_connect")
 
+        # Abort immediately if device IP is already configured in Home Assistant
+        for entry in self._async_current_entries():
+            if entry.data.get(CONF_IP_ADDRESS) == host:
+                return self.async_abort(reason="already_configured")
+
         props = getattr(discovery_info, "properties", {}) or {}
         mac = props.get("mac")
-        unique_id = f"candy_{mac.replace(':', '').lower()}" if mac else f"candy_{host.replace('.', '_')}"
-
-        await self.async_set_unique_id(unique_id)
-        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
-
-        session = async_get_clientsession(self.hass)
-        probe = await async_probe_candy_device(host, session, timeout=1.2)
-        if not probe:
-            return self.async_abort(reason="not_candy_device")
-
-        self._discovered_host = host
-        self._discovered_name = probe.name
-        _LOGGER.info("Zeroconf verified Candy appliance at %s (%s)", host, probe.name)
-        return await self.async_step_discovery_confirm()
-
-    async def async_step_dhcp(
-        self, discovery_info: Any
-    ) -> config_entries.FlowResult:
-        """Handle DHCP discovery."""
-        host = getattr(discovery_info, "ip", "")
-        mac = getattr(discovery_info, "macaddress", "")
-        if not host:
-            return self.async_abort(reason="cannot_connect")
-
-        unique_id = f"candy_{mac.replace(':', '').lower()}" if mac else f"candy_{host.replace('.', '_')}"
-        await self.async_set_unique_id(unique_id)
-        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
-
-        session = async_get_clientsession(self.hass)
-        probe = await async_probe_candy_device(host, session, timeout=1.2)
-        if not probe:
-            return self.async_abort(reason="not_candy_device")
-
-        self._discovered_host = host
-        self._discovered_name = probe.name
-        _LOGGER.info("DHCP verified Candy appliance: host=%s, name=%s", host, probe.name)
-        return await self.async_step_discovery_confirm()
-
-    async def async_step_ssdp(
-        self, discovery_info: Any
-    ) -> config_entries.FlowResult:
-        """Handle SSDP discovery."""
-        location = getattr(discovery_info, "ssdp_location", "")
-        host = urlparse(location).hostname if location else ""
-        if not host:
-            return self.async_abort(reason="cannot_connect")
+        if mac:
+            mac_clean = str(mac).replace(":", "").lower()
+            for entry in self._async_current_entries():
+                if entry.unique_id in (f"candy_{mac_clean}", mac_clean):
+                    return self.async_abort(reason="already_configured")
 
         unique_id = f"candy_{host.replace('.', '_')}"
         await self.async_set_unique_id(unique_id)
@@ -201,6 +172,71 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._discovered_host = host
         self._discovered_name = probe.name
+        self._discovered_type = probe.appliance_type
+        _LOGGER.info("Zeroconf verified Candy appliance at %s (%s)", host, probe.name)
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_dhcp(
+        self, discovery_info: Any
+    ) -> config_entries.FlowResult:
+        """Handle DHCP discovery."""
+        host = getattr(discovery_info, "ip", "")
+        mac = getattr(discovery_info, "macaddress", "")
+        if not host:
+            return self.async_abort(reason="cannot_connect")
+
+        # Abort immediately if device IP is already configured in Home Assistant
+        for entry in self._async_current_entries():
+            if entry.data.get(CONF_IP_ADDRESS) == host:
+                return self.async_abort(reason="already_configured")
+
+        if mac:
+            mac_clean = str(mac).replace(":", "").lower()
+            for entry in self._async_current_entries():
+                if entry.unique_id in (f"candy_{mac_clean}", mac_clean):
+                    return self.async_abort(reason="already_configured")
+
+        unique_id = f"candy_{host.replace('.', '_')}"
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
+
+        session = async_get_clientsession(self.hass)
+        probe = await async_probe_candy_device(host, session, timeout=1.2)
+        if not probe:
+            return self.async_abort(reason="not_candy_device")
+
+        self._discovered_host = host
+        self._discovered_name = probe.name
+        self._discovered_type = probe.appliance_type
+        _LOGGER.info("DHCP verified Candy appliance: host=%s, name=%s", host, probe.name)
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_ssdp(
+        self, discovery_info: Any
+    ) -> config_entries.FlowResult:
+        """Handle SSDP discovery."""
+        location = getattr(discovery_info, "ssdp_location", "")
+        host = urlparse(location).hostname if location else ""
+        if not host:
+            return self.async_abort(reason="cannot_connect")
+
+        # Abort immediately if device IP is already configured in Home Assistant
+        for entry in self._async_current_entries():
+            if entry.data.get(CONF_IP_ADDRESS) == host:
+                return self.async_abort(reason="already_configured")
+
+        unique_id = f"candy_{host.replace('.', '_')}"
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host})
+
+        session = async_get_clientsession(self.hass)
+        probe = await async_probe_candy_device(host, session, timeout=1.2)
+        if not probe:
+            return self.async_abort(reason="not_candy_device")
+
+        self._discovered_host = host
+        self._discovered_name = probe.name
+        self._discovered_type = probe.appliance_type
         _LOGGER.info("SSDP verified Candy appliance at %s (%s)", host, probe.name)
         return await self.async_step_discovery_confirm()
 
@@ -210,6 +246,11 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Confirm discovery of a Candy appliance."""
         errors: Dict[str, str] = {}
         host = self._discovered_host or ""
+
+        # Abort if device was already configured in another concurrent flow
+        for entry in self._async_current_entries():
+            if entry.data.get(CONF_IP_ADDRESS) == host:
+                return self.async_abort(reason="already_configured")
 
         if user_input is not None:
             key = user_input.get(CONF_KEY, "").strip()

@@ -116,6 +116,10 @@ class CandyStatusSensor(CandyBaseSensor):
         """Return the current operating mode description."""
         data = self.coordinator.data or {}
         if self.coordinator.appliance_type == APPLIANCE_TYPE_DISHWASHER:
+            if not data.get("is_running") and not data.get("is_paused"):
+                if data.get("is_finished"):
+                    return "Ciclo terminato"
+                return "In attesa / Standby"
             mode = str(data.get("stato_dwash", "1"))
             return DISHWASHER_MODES.get(mode, f"Stato {mode}")
         

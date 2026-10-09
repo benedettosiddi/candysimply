@@ -56,7 +56,8 @@ def test_time_formatting():
     assert format_remaining_time(0) == "Completato / Pronto"
     assert format_remaining_time(3600) == "1h 00m"
     assert format_remaining_time(5400) == "1h 30m"
-    assert format_remaining_time(45) == "45 min"
+    assert format_remaining_time(2700) == "45 min"
+    assert format_remaining_time(45, is_dishwasher=True) == "45 min"
     assert format_remaining_time("invalid") == "N/D"
 
 

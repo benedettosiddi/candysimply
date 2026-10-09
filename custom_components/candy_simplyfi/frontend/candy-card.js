@@ -222,10 +222,14 @@ class CandyCard extends HTMLElement {
     const parsedSpin = parseInt(rawSpinState, 10);
     const spinVal = !isNaN(parsedSpin) ? parsedSpin : 0;
 
-    const isRunning = entities.running?.state?.state === 'on' ||
-                      statusVal.includes('funzione') || statusVal === '2' ||
-                      (phaseVal && !phaseVal.includes('non avviato') && !phaseVal.includes('terminato') && phaseVal !== '0' && phaseVal !== '6');
-    const isPaused = statusVal.includes('pausa') || statusVal === '3';
+    const isRunning = isDishwasher
+      ? (entities.running ? entities.running.state?.state === 'on' : (statusVal.includes('funzione') && !statusVal.includes('standby') && !statusVal.includes('attesa')))
+      : (entities.running?.state?.state === 'on' ||
+         statusVal.includes('funzione') || statusVal === '2' ||
+         (phaseVal && !phaseVal.includes('non avviato') && !phaseVal.includes('terminato') && phaseVal !== '0' && phaseVal !== '6'));
+    const isPaused = isDishwasher
+      ? (statusVal.includes('pausa') || (entities.running?.state?.attributes?.is_paused === true))
+      : (statusVal.includes('pausa') || statusVal === '3');
     const isFinished = statusVal.includes('terminato') || statusVal === '7' || statusVal === '5';
     const doorState = entities.doorLocked?.state?.state;
     const isDoorLocked = entities.doorLocked
@@ -1747,4 +1751,4 @@ if (!window.customCards.some(card => card.type === 'candy-card')) {
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.0 Animazioni Programmi & Riconoscimento Entità Perfezionati ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.2 Gestione Standby Lavastoviglie & Discovery Deduplication ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
