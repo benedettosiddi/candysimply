@@ -320,3 +320,13 @@ action:
       title: "🧂 Allarme Lavastoviglie"
       message: "Il sale rigenerante nella lavastoviglie Candy è quasi esaurito. Ricordati di fare il rabbocco!"
 ```
+
+---
+
+## 🏛️ Sottomissione Ufficiale a Home Assistant Core
+
+Se desideri proporre questa integrazione come **componente ufficiale nativo di Home Assistant Core** (senza HACS):
+
+- 📖 **Guida Completa alla Sottomissione Core**: Consulta [`GUIDA_INTEGRAZIONE_UFFICIALE_CORE.md`](file:///c:/Users/BenedettoSiddi/Sviluppo/candy/GUIDA_INTEGRAZIONE_UFFICIALE_CORE.md) per i requisiti architetturali, la checklist di qualità (Quality Scale) e i passaggi per aprire la Pull Request su `home-assistant/core`.
+- 📄 **Documentazione per `home-assistant.io`**: Il file formattato secondo gli standard del sito ufficiale di Home Assistant è pronto all'uso in [`docs/home_assistant_official_docs.markdown`](file:///c:/Users/BenedettoSiddi/Sviluppo/candy/docs/home_assistant_official_docs.markdown).
+
