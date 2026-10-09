@@ -182,7 +182,12 @@ class CandyCard extends HTMLElement {
                       statusVal.includes('funzione') || statusVal === '2';
     const isPaused = statusVal.includes('pausa') || statusVal === '3';
     const isFinished = statusVal.includes('terminato') || statusVal === '7' || statusVal === '5';
-    const isDoorLocked = entities.doorLocked ? entities.doorLocked.state?.state === 'on' : isRunning;
+    const doorState = entities.doorLocked?.state?.state;
+    const isDoorLocked = entities.doorLocked
+      ? (entities.doorLocked.state?.attributes?.is_locked !== undefined
+          ? Boolean(entities.doorLocked.state.attributes.is_locked)
+          : (doorState === 'off' || doorState === 'locked' || (entities.doorLocked.state?.attributes?.device_class !== 'lock' && doorState === 'on')))
+      : isRunning;
     const isDryingActive = (entities.dryingActive?.state?.state === 'on') ||
                            phaseVal.includes('asciugatura') || phaseVal === '5' ||
                            progVal.includes('asciugatura');

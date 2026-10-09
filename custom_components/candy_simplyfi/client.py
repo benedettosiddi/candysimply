@@ -9,7 +9,10 @@ import logging
 import re
 from typing import Any, Dict, Optional, Tuple
 
-import aiohttp
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None  # type: ignore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -189,7 +192,7 @@ class CandyLocalClient:
         self.use_encryption = use_encryption
         self._session = session
         self._internal_session = False
-        self._timeout = aiohttp.ClientTimeout(total=timeout)
+        self._timeout = aiohttp.ClientTimeout(total=timeout) if aiohttp else timeout
         self.detected_appliance_type: Optional[str] = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -249,9 +252,13 @@ class CandyLocalClient:
                 cleaned = re.sub(r",\s*([}\]])", r"\1", raw_text)
                 try:
                     data = json.loads(cleaned)
-                    self.use_encryption = False
-                    self._detect_type_from_data(data)
-                    return data
+                    # Verify that response is valid telemetry, not an error like {"response":"BAD REQUEST"}
+                    if isinstance(data, dict) and not any(k in data for k in ("response", "error", "Error")) and any(
+                        k in data for k in STATUS_ROOTS
+                    ):
+                        self.use_encryption = False
+                        self._detect_type_from_data(data)
+                        return data
                 except json.JSONDecodeError:
                     pass
 
@@ -302,7 +309,7 @@ class CandyLocalClient:
             f"Impossibile leggere o decifrare lo stato da {self.host}. Verifica IP e chiave crittografica."
         )
 
-    def _detect_type_from_data(self, data: Dict[str, Any]) -> str:
+    def _detect_type_from_data(self, data: Dict[str, Any]) -> Optional[str]:
         """Detect whether device is washer, washer-dryer, dishwasher, etc."""
         if "statusLavatrice" in data:
             inner = data.get("statusLavatrice", {})
@@ -321,8 +328,16 @@ class CandyLocalClient:
             self.detected_appliance_type = "washer_dryer"
         elif "statusTD" in data:
             self.detected_appliance_type = "dryer"
+        elif "statusForno" in data:
+            self.detected_appliance_type = "oven"
+        elif "statusHob" in data:
+            self.detected_appliance_type = "hob"
+        elif "statusRX" in data:
+            self.detected_appliance_type = "fridge"
+        elif "statusWCool" in data:
+            self.detected_appliance_type = "wine_cooler"
         else:
-            self.detected_appliance_type = "washer"
+            self.detected_appliance_type = None
         return self.detected_appliance_type
 
     async def async_write_parameters(self, params: Dict[str, Any]) -> bool:

@@ -12,7 +12,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import APPLIANCE_TYPE_DISHWASHER, DOMAIN
+from .const import APPLIANCE_TYPE_DISHWASHER, DOMAIN, get_device_model_name
 from .coordinator import CandyDataUpdateCoordinator
 from .programs import (
     DISHWASHER_PROGRAMS,
@@ -66,8 +66,7 @@ class CandyBaseButton(CoordinatorEntity[CandyDataUpdateCoordinator], ButtonEntit
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
-        app_type = self.coordinator.appliance_type
-        model = "Lavastoviglie Simply-Fi" if app_type == APPLIANCE_TYPE_DISHWASHER else "Lavasciuga Simply-Fi"
+        model = get_device_model_name(self.coordinator.appliance_type)
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.unique_id)},
             name=f"Candy {model}",

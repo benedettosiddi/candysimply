@@ -42,6 +42,8 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._discovered_host: Optional[str] = None
         self._discovered_name: Optional[str] = None
+        self._discovered_type: Optional[str] = None
+        self._discovered_map: Dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -55,15 +57,10 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if selected == MANUAL_IP:
                     return await self.async_step_manual()
                 self._discovered_host = selected
-                self._discovered_name = f"Candy ({selected})"
-                # Automatically attempt setup with auto-detected encryption
-                return await self._async_create_candy_entry(
-                    ip_address=selected,
-                    key="",
-                    appliance_type=APPLIANCE_TYPE_AUTO,
-                    errors=errors,
-                    step_id="discovery_confirm",
-                )
+                disc = self._discovered_map.get(selected)
+                self._discovered_name = disc.name if disc else f"Candy ({selected})"
+                self._discovered_type = disc.appliance_type if disc else APPLIANCE_TYPE_AUTO
+                return await self.async_step_discovery_confirm()
 
             ip_address = user_input.get(CONF_IP_ADDRESS, "").strip()
             if ip_address:
@@ -80,6 +77,7 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Proactively scan full LAN subnet for Candy devices
         discovered = await async_discover_candy_devices(self.hass, max_hosts_to_scan=254)
         if discovered:
+            self._discovered_map = {d.host: d for d in discovered}
             device_options = {d.host: d.name for d in discovered}
             device_options[MANUAL_IP] = "Inserisci indirizzo IP manualmente..."
 
@@ -224,11 +222,12 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="discovery_confirm",
             )
 
+        default_type = self._discovered_type or APPLIANCE_TYPE_AUTO
         schema = vol.Schema(
             {
                 vol.Optional(CONF_KEY, default=""): str,
                 vol.Optional(CONF_AUTO_DETECT_KEY, default=True): bool,
-                vol.Optional(CONF_APPLIANCE_TYPE, default=APPLIANCE_TYPE_AUTO): vol.In(
+                vol.Optional(CONF_APPLIANCE_TYPE, default=default_type): vol.In(
                     APPLIANCE_TYPES
                 ),
             }
@@ -264,8 +263,13 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await client.async_read_status()
             final_key = client.key or key
             use_encryption = client.use_encryption
-            detected_type = client.detected_appliance_type or appliance_type
-            type_name = APPLIANCE_TYPES.get(detected_type, "Elettrodomestico")
+            # Explicit user preference takes precedence over auto-detection
+            if appliance_type and appliance_type != APPLIANCE_TYPE_AUTO:
+                final_type = appliance_type
+            else:
+                final_type = client.detected_appliance_type or APPLIANCE_TYPE_WASHER_DRYER
+
+            type_name = APPLIANCE_TYPES.get(final_type, "Elettrodomestico")
             title = f"Candy {type_name} ({ip_address})"
 
             await self.async_set_unique_id(f"candy_{ip_address.replace('.', '_')}")
@@ -277,7 +281,7 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_IP_ADDRESS: ip_address,
                     CONF_KEY: final_key,
                     CONF_ENCRYPTED: use_encryption,
-                    CONF_APPLIANCE_TYPE: detected_type,
+                    CONF_APPLIANCE_TYPE: final_type,
                     CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
                 },
             )
@@ -345,6 +349,14 @@ class CandySimplyFiOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.FlowResult:
         """Manage options."""
         if user_input is not None:
+            new_type = user_input.get(CONF_APPLIANCE_TYPE)
+            if new_type and new_type in APPLIANCE_TYPES and new_type != APPLIANCE_TYPE_AUTO:
+                type_name = APPLIANCE_TYPES[new_type]
+                ip_addr = self.config_entry.data.get(CONF_IP_ADDRESS, "")
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    title=f"Candy {type_name} ({ip_addr})" if ip_addr else f"Candy {type_name}",
+                )
             return self.async_create_entry(title="", data=user_input)
 
         current_interval = self.config_entry.options.get(

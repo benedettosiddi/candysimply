@@ -127,9 +127,14 @@ async def async_probe_candy_device(
                     try:
                         data = await client.async_read_status()
                         app_type = client.detected_appliance_type or APPLIANCE_TYPE_AUTO
-                        type_name = "Lavasciuga" if app_type == APPLIANCE_TYPE_WASHER_DRYER else (
-                            "Lavastoviglie Brava" if app_type == APPLIANCE_TYPE_DISHWASHER else "Lavatrice"
-                        )
+                        if app_type == APPLIANCE_TYPE_DISHWASHER:
+                            type_name = "Lavastoviglie"
+                        elif app_type == APPLIANCE_TYPE_WASHER_DRYER:
+                            type_name = "Lavasciuga"
+                        elif app_type == APPLIANCE_TYPE_WASHER:
+                            type_name = "Lavatrice"
+                        else:
+                            type_name = "Elettrodomestico"
                         return DiscoveredCandyDevice(
                             host=host,
                             appliance_type=app_type,

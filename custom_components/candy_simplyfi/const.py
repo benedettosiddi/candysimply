@@ -31,6 +31,16 @@ APPLIANCE_TYPES: Final = {
     APPLIANCE_TYPE_DRYER: "Asciugatrice / Tumble Dryer",
 }
 
+
+def get_device_model_name(appliance_type: str) -> str:
+    """Return friendly model name based on appliance type."""
+    if appliance_type == APPLIANCE_TYPE_DISHWASHER:
+        return "Lavastoviglie Simply-Fi"
+    if appliance_type == APPLIANCE_TYPE_WASHER_DRYER:
+        return "Lavasciuga Simply-Fi"
+    return "Lavatrice Simply-Fi"
+
+
 # Machine modes (MachMd) for Washers / Washer-Dryers
 WASHER_MODE_IDLE: Final = "1"
 WASHER_MODE_RUNNING: Final = "2"

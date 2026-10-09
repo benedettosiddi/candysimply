@@ -175,8 +175,13 @@ def cmd_status(ip: str, key: str = ""):
 
         if body.startswith("{"):
             try:
-                data = json.loads(re.sub(r",\s*([}\]])", r"\1", body))
-                break
+                parsed = json.loads(re.sub(r",\s*([}\]])", r"\1", body))
+                # Verify that response is valid telemetry, not an error like {"response":"BAD REQUEST"}
+                if isinstance(parsed, dict) and not any(k in parsed for k in ("response", "error", "Error")) and any(
+                    k in parsed for k in ("statusLavatrice", "statusWD", "statusTD", "statusDWash", "statusLavastoviglie", "StatoDWash", "statusDishwasher")
+                ):
+                    data = parsed
+                    break
             except Exception:
                 pass
         else:
@@ -227,8 +232,8 @@ def cmd_status(ip: str, key: str = ""):
         print(f" Codice Errore:           {sub.get('CodiceErrore', 'E0')}")
         print(f" Controllo Remoto (Wi-Fi):{'ABILITATO (Pr=16)' if str(sub.get('Pr')) == '16' or str(sub.get('WiFiStatus')) == '1' else 'DISABILITATO (Ruota la manopola fisica su Wi-Fi!)'}")
 
-    elif "statusDWash" in data:
-        sub = data.get("statusDWash", {})
+    elif any(k in data for k in ("statusDWash", "statusLavastoviglie", "StatoDWash", "statusDishwasher")):
+        sub = data.get("statusDWash") or data.get("statusLavastoviglie") or data.get("statusDishwasher") or data
         print(" Tipo: Lavastoviglie")
         print(f" Stato (StatoDWash):      {sub.get('StatoDWash')} (1=Standby, 2=In Funzione, 3=Pausa, 5=Terminato)")
         print(f" Programma:               {sub.get('Program')}")

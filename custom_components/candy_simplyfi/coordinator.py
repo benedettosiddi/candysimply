@@ -121,10 +121,79 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "is_online": True,
         }
 
-        # Check for Washer / Washer-Dryer
+        has_dishwasher_data = any(
+            k in raw for k in ("statusDWash", "statusLavastoviglie", "StatoDWash", "statusDishwasher")
+        )
+        has_washer_data = any(
+            k in raw for k in ("statusLavatrice", "statusWD")
+        )
+
+        # Check for Dishwasher
         if (
-            "statusLavatrice" in raw
-            or "statusWD" in raw
+            has_dishwasher_data
+            or (self.appliance_type == APPLIANCE_TYPE_DISHWASHER and not has_washer_data)
+        ):
+            if has_dishwasher_data and self.appliance_type != APPLIANCE_TYPE_DISHWASHER:
+                _LOGGER.info("Detected dishwasher telemetry from %s, setting appliance_type to dishwasher", self.client.host)
+                self.appliance_type = APPLIANCE_TYPE_DISHWASHER
+                data["appliance_type"] = APPLIANCE_TYPE_DISHWASHER
+
+            sub = (
+                raw.get("statusDWash")
+                or raw.get("statusLavastoviglie")
+                or raw.get("statusDishwasher")
+                or (raw if ("StatoDWash" in raw or "Program" in raw) else {})
+            )
+
+            # Dishwasher state
+            stato_dwash = str(sub.get("StatoDWash", "1"))
+            data["stato_dwash"] = stato_dwash
+            data["is_running"] = stato_dwash in ("2", "3", "4")
+            data["is_paused"] = stato_dwash == "3"
+            data["is_finished"] = stato_dwash == "5"
+
+            # Program
+            prog_raw = str(sub.get("Program", "P1")).strip().upper()
+            if not prog_raw.startswith("P"):
+                prog_raw = f"P{prog_raw}"
+            data["program"] = prog_raw
+
+            # Remaining time
+            try:
+                data["rem_time_raw"] = int(sub.get("RemTime", 0))
+            except (ValueError, TypeError):
+                data["rem_time_raw"] = 0
+
+            # Dishwasher Options & Alerts
+            data["half_load"] = str(sub.get("MetaCarico", "0")) == "1"
+            data["tabs_3in1"] = str(sub.get("TreinUno", "0")) == "1"
+            data["extra_dry"] = str(sub.get("ExtraDry", "0")) == "1"
+            data["open_door_opt"] = str(sub.get("OpenDoorOpt", "0")) in ("1", "7")
+            data["door_open"] = str(sub.get("OpenDoor", "0")) == "1"
+            data["miss_salt"] = str(sub.get("MissSalt", "0")) == "1"
+            data["miss_rinse"] = str(sub.get("MissRinse", "0")) == "1"
+            data["eco"] = str(sub.get("Eco", sub.get("eco", "0"))) == "1"
+            data["buzzer_mute"] = str(sub.get("BM", "0")) == "1"
+
+            # Remote control status for dishwasher
+            data["remote_control_enabled"] = (
+                str(sub.get("StatoWiFi", "")).strip() == "1"
+                or str(sub.get("WiFiStatus", "")).strip() == "1"
+                or str(sub.get("CheckWiFi", "")).strip() == "1"
+                or True
+            )
+
+            # Error code
+            err_code = str(sub.get("CodiceErrore", "E0")).strip()
+            data["error_code"] = err_code
+            data["error_description"] = ERROR_CODES.get(err_code, f"Errore {err_code}")
+
+            # Wi-Fi status
+            data["wifi_status"] = str(sub.get("StatoWiFi", "1")) == "1"
+
+        # Check for Washer / Washer-Dryer
+        elif (
+            has_washer_data
             or self.appliance_type in (APPLIANCE_TYPE_WASHER, APPLIANCE_TYPE_WASHER_DRYER)
         ):
             sub = raw.get("statusLavatrice", raw.get("statusWD", {}))
@@ -199,7 +268,25 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 or pr_int == 16
                 or opt8 == "1"
             )
-            data["door_locked"] = str(sub.get("DoorLock", sub.get("DoorState", "0"))) == "1"
+            # Check explicit door lock attributes if provided by firmware
+            door_keys = ("DoorLock", "DoorState", "Door", "Door_Lock", "Lock", "DoorStat", "Porta")
+            explicit_door = None
+            for dk in door_keys:
+                if dk in sub:
+                    explicit_door = sub[dk]
+                    break
+
+            if explicit_door is not None:
+                data["door_locked"] = str(explicit_door).strip() in ("1", "true", "True", "on", "ON")
+            else:
+                # In Candy Simply-Fi washing machines, the physical PTC safety door lock
+                # is engaged whenever the machine is running (MachMd in 2, 5),
+                # paused mid-cycle (MachMd == 3), or in active phases (wash, rinse, spin, dry).
+                # It unlocks after the cycle finishes (MachMd == 7) or in standby (MachMd == 1).
+                data["door_locked"] = (
+                    mach_md in ("2", "3", "5")
+                    or (data["pr_ph"] not in ("0", "6") and data["rem_time_raw"] > 0)
+                )
 
             # Error code
             err_code = str(sub.get("CodiceErrore", "E0")).strip()
@@ -209,66 +296,6 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             # Wi-Fi status
             data["wifi_status"] = str(sub.get("StatoWiFi", "1")) == "1"
 
-        # Check for Dishwasher
-        elif (
-            "statusDWash" in raw
-            or "statusLavastoviglie" in raw
-            or "StatoDWash" in raw
-            or "statusDishwasher" in raw
-            or self.appliance_type == APPLIANCE_TYPE_DISHWASHER
-        ):
-            sub = (
-                raw.get("statusDWash")
-                or raw.get("statusLavastoviglie")
-                or raw.get("statusDishwasher")
-                or (raw if ("StatoDWash" in raw or "Program" in raw) else {})
-            )
-
-            # Dishwasher state
-            stato_dwash = str(sub.get("StatoDWash", "1"))
-            data["stato_dwash"] = stato_dwash
-            data["is_running"] = stato_dwash in ("2", "3", "4")
-            data["is_paused"] = stato_dwash == "3"
-            data["is_finished"] = stato_dwash == "5"
-
-            # Program
-            prog_raw = str(sub.get("Program", "P1")).strip().upper()
-            if not prog_raw.startswith("P"):
-                prog_raw = f"P{prog_raw}"
-            data["program"] = prog_raw
-
-            # Remaining time
-            try:
-                data["rem_time_raw"] = int(sub.get("RemTime", 0))
-            except (ValueError, TypeError):
-                data["rem_time_raw"] = 0
-
-            # Dishwasher Options & Alerts
-            data["half_load"] = str(sub.get("MetaCarico", "0")) == "1"
-            data["tabs_3in1"] = str(sub.get("TreinUno", "0")) == "1"
-            data["extra_dry"] = str(sub.get("ExtraDry", "0")) == "1"
-            data["open_door_opt"] = str(sub.get("OpenDoorOpt", "0")) in ("1", "7")
-            data["door_open"] = str(sub.get("OpenDoor", "0")) == "1"
-            data["miss_salt"] = str(sub.get("MissSalt", "0")) == "1"
-            data["miss_rinse"] = str(sub.get("MissRinse", "0")) == "1"
-            data["eco"] = str(sub.get("Eco", sub.get("eco", "0"))) == "1"
-            data["buzzer_mute"] = str(sub.get("BM", "0")) == "1"
-
-            # Remote control status for dishwasher
-            data["remote_control_enabled"] = (
-                str(sub.get("StatoWiFi", "")).strip() == "1"
-                or str(sub.get("WiFiStatus", "")).strip() == "1"
-                or str(sub.get("CheckWiFi", "")).strip() == "1"
-                or True
-            )
-
-            # Error code
-            err_code = str(sub.get("CodiceErrore", "E0")).strip()
-            data["error_code"] = err_code
-            data["error_description"] = ERROR_CODES.get(err_code, f"Errore {err_code}")
-
-            # Wi-Fi status
-            data["wifi_status"] = str(sub.get("StatoWiFi", "1")) == "1"
 
         # Merge persistent staged selections so UI picks are never wiped out by background polls
         data["staged_program"] = self.staged_program

@@ -4,7 +4,6 @@ import importlib.util
 import os
 import sys
 from unittest.mock import AsyncMock, MagicMock
-import pytest
 
 comp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "custom_components", "candy_simplyfi"))
 if comp_dir not in sys.path:
@@ -180,3 +179,105 @@ def test_coordinator_dishwasher_staged_options():
     assert parsed["staged_dw_program"] == test_dw_prog
     assert parsed["staged_half_load"] is True
     assert parsed["staged_extra_dry"] is True
+
+
+def test_coordinator_dishwasher_status_dwash_parsing():
+    """Verify Candy dishwasher with statusDWash root key is properly identified and parsed."""
+    mock_hass = MagicMock()
+    mock_client = MagicMock()
+    mock_client.host = "192.168.2.70"
+
+    coordinator = CandyDataUpdateCoordinator(
+        hass=mock_hass,
+        client=mock_client,
+        appliance_type="auto",
+    )
+
+    dwash_raw = {
+        "statusDWash": {
+            "StatoWiFi": "1",
+            "CodiceErrore": "E0",
+            "StatoDWash": "5",
+            "MetaCarico": "0",
+            "StartStop": "0",
+            "TreinUno": "1",
+            "Eco": "0",
+            "Program": "P8",
+            "ExtraDry": "0",
+            "OpenDoorOpt": "1",
+            "DelayStart": "0",
+            "RemTime": "230",
+            "MissSalt": "1",
+            "MissRinse": "0",
+            "OpenDoor": "0",
+        }
+    }
+
+    parsed = coordinator._parse_data(dwash_raw)
+    assert coordinator.appliance_type == "dishwasher"
+    assert parsed["appliance_type"] == "dishwasher"
+    assert parsed["is_running"] is False
+    assert parsed["is_finished"] is True
+    assert parsed["program"] == "P8"
+    assert parsed["rem_time_raw"] == 230
+    assert parsed["miss_salt"] is True
+    assert parsed["miss_rinse"] is False
+    assert parsed["tabs_3in1"] is True
+    assert parsed["open_door_opt"] is True
+
+
+def test_get_device_model_name():
+    """Verify get_device_model_name maps all appliance types to correct friendly names."""
+    get_model = const_mod.get_device_model_name
+    assert get_model("dishwasher") == "Lavastoviglie Simply-Fi"
+    assert get_model("washer_dryer") == "Lavasciuga Simply-Fi"
+    assert get_model("washer") == "Lavatrice Simply-Fi"
+
+
+def test_coordinator_washer_door_locked():
+    """Verify door lock state when explicit or inferred from operational state."""
+    mock_hass = MagicMock()
+    mock_client = MagicMock()
+    mock_client.host = "192.168.2.73"
+
+    coordinator = CandyDataUpdateCoordinator(
+        hass=mock_hass,
+        client=mock_client,
+        appliance_type="washer",
+    )
+
+    # 1. Machine running (MachMd=2, PrPh=3, RemTime=960) without explicit DoorLock key
+    running_raw = {
+        "statusLavatrice": {
+            "MachMd": "2",
+            "Pr": "7",
+            "PrPh": "3",
+            "RemTime": "960",
+        }
+    }
+    parsed1 = coordinator._parse_data(running_raw)
+    assert parsed1["door_locked"] is True
+
+    # 2. Machine idle (MachMd=1, PrPh=0, RemTime=0)
+    idle_raw = {
+        "statusLavatrice": {
+            "MachMd": "1",
+            "Pr": "1",
+            "PrPh": "0",
+            "RemTime": "0",
+        }
+    }
+    parsed2 = coordinator._parse_data(idle_raw)
+    assert parsed2["door_locked"] is False
+
+    # 3. Explicit DoorLock="0" takes priority if firmware supplies it
+    explicit_raw = {
+        "statusLavatrice": {
+            "MachMd": "1",
+            "DoorLock": "1",
+        }
+    }
+    parsed3 = coordinator._parse_data(explicit_raw)
+    assert parsed3["door_locked"] is True
+
+

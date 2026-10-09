@@ -14,7 +14,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import APPLIANCE_TYPE_DISHWASHER, DOMAIN
+from .const import APPLIANCE_TYPE_DISHWASHER, DOMAIN, get_device_model_name
 from .coordinator import CandyDataUpdateCoordinator
 
 
@@ -88,8 +88,7 @@ class CandyBaseBinarySensor(CoordinatorEntity[CandyDataUpdateCoordinator], Binar
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
-        app_type = self.coordinator.appliance_type
-        model = "Lavastoviglie Simply-Fi" if app_type == APPLIANCE_TYPE_DISHWASHER else "Lavasciuga Simply-Fi"
+        model = get_device_model_name(self.coordinator.appliance_type)
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.unique_id)},
             name=f"Candy {model}",
@@ -151,15 +150,31 @@ class CandyDoorLockedBinarySensor(CandyBaseBinarySensor):
             "door_locked",
             "Oblò Bloccato (Sicurezza)",
             device_class=BinarySensorDeviceClass.LOCK,
-            icon="mdi:door-closed-lock",
         )
 
     @property
     def is_on(self) -> bool:
-        """Return True if door is locked (not safe to open)."""
+        """Return True if door is unlocked, False if locked (Home Assistant LOCK device_class convention)."""
         data = self.coordinator.data or {}
-        # False means unlocked, True means locked
+        # Home Assistant LOCK device_class: on = UNLOCKED, off = LOCKED
         return not data.get("door_locked", False)
+
+    @property
+    def icon(self) -> str:
+        """Dynamic icon for door lock status."""
+        data = self.coordinator.data or {}
+        is_locked = data.get("door_locked", False)
+        return "mdi:door-closed-lock" if is_locked else "mdi:door-open"
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Extra attributes."""
+        data = self.coordinator.data or {}
+        is_locked = data.get("door_locked", False)
+        return {
+            "is_locked": is_locked,
+            "safe_to_open": not is_locked,
+        }
 
 
 class CandyRemoteControlBinarySensor(CandyBaseBinarySensor):

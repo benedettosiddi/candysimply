@@ -18,6 +18,7 @@ from .const import (
     DRYING_LEVELS,
     SPIN_SPEEDS,
     TEMPERATURES,
+    get_device_model_name,
 )
 from .coordinator import CandyDataUpdateCoordinator
 from .programs import (
@@ -80,8 +81,7 @@ class CandyBaseSelect(CoordinatorEntity[CandyDataUpdateCoordinator], SelectEntit
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
-        app_type = self.coordinator.appliance_type
-        model = "Lavastoviglie Simply-Fi" if app_type == APPLIANCE_TYPE_DISHWASHER else "Lavasciuga Simply-Fi"
+        model = get_device_model_name(self.coordinator.appliance_type)
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.unique_id)},
             name=f"Candy {model}",
