@@ -143,6 +143,11 @@ class CandyStartProgramButton(CandyBaseButton):
             temp = self.coordinator.staged_temp if self.coordinator.staged_temp is not None else staged_prog.default_temp
             spin = self.coordinator.staged_spin if self.coordinator.staged_spin is not None else staged_prog.default_spin
             dry_t = self.coordinator.staged_dry_time
+            if dry_t is None and staged_prog:
+                dry_t = getattr(staged_prog, "default_dry_time", None)
+            if getattr(staged_prog, "is_dry_only", False) and (dry_t is None or dry_t == 0):
+                dry_t = 2
+
             opts = dict(self.coordinator.staged_options)
             delay = int(self.coordinator.staged_delay_start)
 

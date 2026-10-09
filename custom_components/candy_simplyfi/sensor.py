@@ -207,9 +207,44 @@ class CandyProgramPhaseSensor(CandyBaseSensor):
         data = self.coordinator.data or {}
         phase_raw = str(data.get("pr_ph", "0"))
         pr_code = data.get("pr_code")
-        if pr_code == 45 and phase_raw == "2":
-            return "Generazione Vapore & Distensione Fibre"
+
+        # Steam Refresh cycle (PrCode 45)
+        if pr_code == 45:
+            if phase_raw in ("1", "2"):
+                return "Generazione Vapore & Distensione Fibre"
+            if phase_raw in ("3", "4", "5"):
+                return "Rinfrescamento & Trattamento Vapore"
+            if phase_raw == "6":
+                return "Fine Trattamento Vapore"
+
+        # Drying-only programs (PrCode 42, 43, 44) or active drying phase
+        if pr_code in (42, 43, 44) or data.get("is_drying"):
+            drying_phases = {
+                "0": "Non avviato",
+                "1": "Bilanciamento Cestello & Ventilazione",
+                "2": "Asciugatura Termica & Condensazione",
+                "3": "Asciugatura e Condensazione",
+                "4": "Raffreddamento Finale Capi (Cool Down)",
+                "5": "Asciugatura Termica Attiva",
+                "6": "Fine Asciugatura / Antipiega",
+            }
+            if phase_raw in drying_phases:
+                return drying_phases[phase_raw]
+
         return WASHER_PHASES.get(phase_raw, f"Fase {phase_raw}")
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return extra attributes like raw phase and drum fill level."""
+        data = self.coordinator.data or {}
+        attrs: Dict[str, Any] = {
+            "raw_phase": data.get("pr_ph", "0"),
+        }
+        if "fill_r" in data:
+            attrs["fill_level"] = data["fill_r"]
+        if "is_drying" in data:
+            attrs["is_drying"] = data["is_drying"]
+        return attrs
 
 
 class CandyRemainingTimeSensor(CandyBaseSensor):

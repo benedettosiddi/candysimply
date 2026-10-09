@@ -139,6 +139,10 @@ class CandyWasherProgramSelect(CandyBaseSelect):
             self.coordinator.staged_program = prog
             self.coordinator.staged_temp = prog.default_temp
             self.coordinator.staged_spin = prog.default_spin
+            if getattr(prog, "default_dry_time", None) is not None:
+                self.coordinator.staged_dry_time = prog.default_dry_time
+            elif not prog.supports_drying:
+                self.coordinator.staged_dry_time = 0
         self.async_write_ha_state()
         self.coordinator.async_update_listeners()
 

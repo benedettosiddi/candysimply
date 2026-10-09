@@ -16,6 +16,8 @@ class WasherProgram:
     max_spin: int = 1400
     supports_drying: bool = True
     supports_steam: bool = False
+    default_dry_time: Optional[int] = None
+    is_dry_only: bool = False
     description: str = ""
 
 @dataclass
@@ -355,6 +357,8 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         default_spin=1400,
         max_spin=1400,
         supports_drying=True,
+        default_dry_time=2,
+        is_dry_only=False,
         description="Lava e asciuga fino a 1.5kg in soli 59 minuti.",
     ),
     "wd_auto_care": WasherProgram(
@@ -368,6 +372,8 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         default_spin=1400,
         max_spin=1400,
         supports_drying=True,
+        default_dry_time=2,
+        is_dry_only=False,
         description="Ciclo completo di lavaggio e asciugatura continua senza interruzioni.",
     ),
     "wd_dry_cotton": WasherProgram(
@@ -381,7 +387,9 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         default_spin=0,
         max_spin=0,
         supports_drying=True,
-        description="Asciugatura potente per lenzuola, tovaglie e spugne.",
+        default_dry_time=2,
+        is_dry_only=True,
+        description="Asciugatura potente ad alta temperatura per cotone, spugne e biancheria resistente.",
     ),
     "wd_dry_synthetic": WasherProgram(
         id="wd_dry_synthetic",
@@ -394,7 +402,9 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         default_spin=0,
         max_spin=0,
         supports_drying=True,
-        description="Asciugatura delicata per fibre sintetiche e capi misti.",
+        default_dry_time=2,
+        is_dry_only=True,
+        description="Asciugatura delicata a media temperatura per fibre sintetiche e capi misti.",
     ),
     "wd_dry_wool": WasherProgram(
         id="wd_dry_wool",
@@ -407,7 +417,9 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         default_spin=0,
         max_spin=0,
         supports_drying=True,
-        description="Asciugatura a temperatura controllata per capi in lana adatti.",
+        default_dry_time=1,
+        is_dry_only=True,
+        description="Asciugatura a bassa temperatura controllata per capi in lana adatti.",
     ),
     "wd_steam_refresh": WasherProgram(
         id="wd_steam_refresh",

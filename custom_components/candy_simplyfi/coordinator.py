@@ -273,7 +273,18 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             # Drying options (for Washer-Dryer)
             dry_t_raw = sub.get("DryT", "0")
             data["dry_t"] = str(dry_t_raw)
-            data["is_drying"] = data["dry_t"] != "0" or data["pr_ph"] == "5"
+            pr_code_int = data.get("pr_code")
+            is_dry_only = pr_code_int in (42, 43, 44)
+            is_active_dry_phase = data["pr_ph"] in ("5", "6")
+
+            # In dry-only programs (42, 43, 44), drying is active across the cycle while running.
+            # In combo wash+dry programs or wash programs with drying selected, drying is active during PrPh 5 or 6.
+            if is_dry_only:
+                data["is_drying"] = data.get("is_running", False)
+            else:
+                data["is_drying"] = is_active_dry_phase
+
+            data["fill_r"] = str(sub.get("FillR", "0"))
 
             # Options
             data["opt1_prewash"] = str(sub.get("Opt1", "0")) == "1"

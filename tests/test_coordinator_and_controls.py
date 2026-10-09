@@ -12,8 +12,12 @@ if comp_dir not in sys.path:
 
 def _load_module(name, filename):
     path = os.path.join(comp_dir, filename)
-    spec = importlib.util.spec_from_file_location(name, path)
+    pkg = "custom_components.candy_simplyfi"
+    full_name = f"{pkg}.{name}"
+    spec = importlib.util.spec_from_file_location(full_name, path)
     mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = pkg
+    sys.modules[full_name] = mod
     sys.modules[name] = mod
     spec.loader.exec_module(mod)
     return mod
@@ -385,6 +389,104 @@ def test_coordinator_delval_minute_countdown():
     assert parsed["pr_code"] == 45
 
 
+def test_drying_only_and_phase_sensor():
+    """Verify that dry-only cycles (e.g. PrCode 42) report is_drying=True and correct non-wash phases."""
+    class DummySensorEntity:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class DummyCoordinatorEntity:
+        def __init__(self, coordinator, *args, **kwargs):
+            self.coordinator = coordinator
+        def __class_getitem__(cls, item):
+            return cls
+
+    for m in [
+        "homeassistant",
+        "homeassistant.components",
+        "homeassistant.config_entries",
+        "homeassistant.const",
+        "homeassistant.core",
+        "homeassistant.helpers",
+        "homeassistant.helpers.entity",
+        "homeassistant.helpers.entity_platform",
+    ]:
+        if m not in sys.modules:
+            sys.modules[m] = MagicMock()
+
+    mock_sensor_pkg = MagicMock()
+    mock_sensor_pkg.SensorEntity = DummySensorEntity
+    sys.modules["homeassistant.components.sensor"] = mock_sensor_pkg
+
+    mock_coord_pkg = MagicMock()
+    mock_coord_pkg.CoordinatorEntity = DummyCoordinatorEntity
+    sys.modules["homeassistant.helpers.update_coordinator"] = mock_coord_pkg
+
+    sensor_mod = _load_module("sensor", "sensor.py")
+    CandyProgramPhaseSensor = sensor_mod.CandyProgramPhaseSensor
+
+    mock_hass = MagicMock()
+    mock_client = MagicMock()
+    mock_client.host = "192.168.2.73"
+
+    coordinator = CandyDataUpdateCoordinator(
+        hass=mock_hass,
+        client=mock_client,
+        appliance_type="washer",
+    )
+
+    # 1. Active drying phase 2
+    dry_telemetry = {
+        "statusLavatrice": {
+            "MachMd": "2",
+            "Pr": "15",
+            "PrPh": "2",
+            "PrCode": "42",
+            "DelVal": "11",
+            "FillR": "0",
+        }
+    }
+    parsed = coordinator._parse_data(dry_telemetry)
+    assert parsed["is_drying"] is True
+    assert parsed["fill_r"] == "0"
+
+    coordinator.data = parsed
+    phase_sensor = CandyProgramPhaseSensor(coordinator)
+    assert phase_sensor.native_value == "Asciugatura Termica & Condensazione"
+    attrs = phase_sensor.extra_state_attributes
+    assert attrs["fill_level"] == "0"
+    assert attrs["is_drying"] is True
+
+    # 2. Cool-down phase (PrPh=4) at end of cycle must NOT be reported as centrifuge
+    cool_down_telemetry = {
+        "statusLavatrice": {
+            "MachMd": "2",
+            "Pr": "15",
+            "PrPh": "4",
+            "PrCode": "42",
+            "DelVal": "4",
+            "FillR": "0",
+        }
+    }
+    parsed_cool = coordinator._parse_data(cool_down_telemetry)
+    coordinator.data = parsed_cool
+    assert phase_sensor.native_value == "Raffreddamento Finale Capi (Cool Down)"
+
+    # 3. Steam Refresh (PrCode=45)
+    steam_telemetry = {
+        "statusLavatrice": {
+            "MachMd": "2",
+            "Pr": "15",
+            "PrPh": "2",
+            "PrCode": "45",
+            "FillR": "0",
+        }
+    }
+    parsed_steam = coordinator._parse_data(steam_telemetry)
+    coordinator.data = parsed_steam
+    assert phase_sensor.native_value == "Generazione Vapore & Distensione Fibre"
+
+
 if __name__ == "__main__":
     test_coordinator_washer_remote_control_wifistatus()
     test_coordinator_staged_settings_preserved_across_updates()
@@ -394,6 +496,7 @@ if __name__ == "__main__":
     test_format_remaining_time()
     test_coordinator_dishwasher_standby_vs_running()
     test_coordinator_delval_minute_countdown()
+    test_drying_only_and_phase_sensor()
     print("ALL COORDINATOR & CONTROLS TESTS PASSED 100%!")
 
 

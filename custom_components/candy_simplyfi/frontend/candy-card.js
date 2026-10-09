@@ -322,8 +322,26 @@ class CandyCard extends HTMLElement {
         description = 'Ciclo in pausa';
       }
     } else {
-      // 1. Centrifuga
-      if (phaseVal.includes('centrifuga') || phaseVal === '4' || progVal.includes('centrifuga')) {
+      // 1. Asciugatura (priorità per cicli/fasi di asciugatura, previene falsi spin o lavaggio in cool-down)
+      if (isDryingActive || progVal.includes('asciugatura')) {
+        washerMode = 'drying';
+        spinDuration = '5.5s';
+        waterLevel = 0;
+        heatGlow = true;
+        hasSteam = true;
+        description = 'Asciugatura attiva con riscaldamento termico e condensazione';
+      }
+      // 2. Vapore / Steam Refresh (nessuna immersione d'acqua, solo vapore e riscaldamento)
+      else if (isSteamActive || progVal.includes('vapore') || progVal.includes('steam')) {
+        washerMode = 'steam';
+        spinDuration = '4.5s';
+        waterLevel = 0;
+        hasSteam = true;
+        heatGlow = true;
+        description = 'Trattamento a vapore igienizzante e distensione fibre';
+      }
+      // 3. Centrifuga
+      else if (phaseVal.includes('centrifuga') || phaseVal === '4' || progVal.includes('centrifuga')) {
         if (spinVal > 0) {
           washerMode = 'spin';
           // Durata rotazione proporzionale ai giri RPM
@@ -344,16 +362,7 @@ class CandyCard extends HTMLElement {
           description = 'Scarico acqua e distensione bucato';
         }
       }
-      // 2. Asciugatura
-      else if (isDryingActive) {
-        washerMode = 'drying';
-        spinDuration = '5.5s';
-        waterLevel = 0;
-        heatGlow = true;
-        hasSteam = true;
-        description = 'Asciugatura attiva con riscaldamento termico e ventilazione';
-      }
-      // 3. Risciacquo
+      // 4. Risciacquo
       else if (phaseVal.includes('risciacquo') || phaseVal === '3' || progVal.includes('risciacquo')) {
         washerMode = 'rinse';
         spinDuration = '3.0s';
@@ -361,22 +370,13 @@ class CandyCard extends HTMLElement {
         hasBubbles = false;
         description = 'Fase risciacquo con alto livello d\'acqua limpida';
       }
-      // 4. Lana, Seta e Delicati (Movimento Culla / Cradle)
+      // 5. Lana, Seta e Delicati (Movimento Culla / Cradle)
       else if (progVal.includes('lana') || progVal.includes('seta') || progVal.includes('delicat') || progVal.includes('piumoni')) {
         washerMode = 'cradle';
         spinDuration = '6.0s';
         waterLevel = 35;
         hasBubbles = true;
         description = 'Movimento culla oscillante delicato per protezione fibre';
-      }
-      // 5. Vapore
-      else if (isSteamActive || progVal.includes('vapore') || progVal.includes('steam')) {
-        washerMode = 'steam';
-        spinDuration = '4.5s';
-        waterLevel = 10;
-        hasSteam = true;
-        heatGlow = true;
-        description = 'Trattamento a vapore igienizzante e antipiega';
       }
       // 6. Programmi Rapidi (14', 30', 44', 59')
       else if (progVal.includes('rapid') || progVal.includes('zoom') || progVal.includes('59') || progVal.includes('14') || progVal.includes('30')) {
@@ -1753,4 +1753,4 @@ if (!window.customCards.some(card => card.type === 'candy-card')) {
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.3 Allineamento Programmi Vapore & Countdown DelVal ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.4 Perfezionamento Cicli Asciugatura & Vapore ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
