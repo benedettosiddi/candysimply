@@ -122,7 +122,8 @@ class CandyWasherProgramSelect(CandyBaseSelect):
         if data.get("is_running"):
             pr_val = data.get("pr", 0)
             pr_code_val = data.get("pr_code")
-            active_prog = get_washer_program_by_pr(pr_val, pr_code_val)
+            spin_val = data.get("spin_speed")
+            active_prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val)
             if active_prog and active_prog.name_it in self._programs_by_name:
                 return active_prog.name_it
 

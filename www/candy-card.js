@@ -340,8 +340,8 @@ class CandyCard extends HTMLElement {
         heatGlow = true;
         description = 'Trattamento a vapore igienizzante e distensione fibre';
       }
-      // 3. Centrifuga
-      else if (phaseVal.includes('centrifuga') || phaseVal === '4' || progVal.includes('centrifuga')) {
+      // 3. Centrifuga o Scarico
+      else if (phaseVal.includes('centrifuga') || phaseVal.includes('scarico') || phaseVal === '4' || progVal.includes('centrifuga') || progVal.includes('scarico')) {
         if (spinVal > 0) {
           washerMode = 'spin';
           // Durata rotazione proporzionale ai giri RPM
@@ -356,10 +356,10 @@ class CandyCard extends HTMLElement {
           description = `Centrifuga rapida attiva a ${spinVal} RPM`;
         } else {
           washerMode = 'wash';
-          spinDuration = '3.8s';
+          spinDuration = '4.5s';
           waterLevel = 0;
           hasBubbles = false;
-          description = 'Scarico acqua e distensione bucato';
+          description = 'Scarico rapido dell\'acqua dal cestello';
         }
       }
       // 4. Risciacquo

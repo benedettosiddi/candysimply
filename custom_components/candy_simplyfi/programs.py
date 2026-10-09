@@ -181,7 +181,20 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         default_spin=1000,
         max_spin=1600,
         supports_drying=False,
-        description="Scarico rapido dell'acqua con centrifuga finale regolabile.",
+        description="Scarico rapido dell'acqua con centrifuga finale regolabile (Solo Centrifuga).",
+    ),
+    "drain_only": WasherProgram(
+        id="drain_only",
+        name_it="Solo Scarico",
+        name_en="Drain Only",
+        pr=9,
+        pr_code=11,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=False,
+        description="Svuotamento rapido dell'acqua dal cestello con centrifuga esclusa (0 Giri).",
     ),
     "delicates": WasherProgram(
         id="delicates",
@@ -660,8 +673,17 @@ DISHWASHER_PROGRAMS: Dict[str, DishwasherProgram] = {
     ),
 }
 
-def get_washer_program_by_pr(pr_val: int, pr_code_val: Optional[int] = None) -> Optional[WasherProgram]:
-    """Find washer program matching Pr and optionally PrCode."""
+def get_washer_program_by_pr(
+    pr_val: int, pr_code_val: Optional[int] = None, spin_val: Optional[int] = None
+) -> Optional[WasherProgram]:
+    """Find washer program matching Pr and optionally PrCode and spin speed."""
+    # Special case: Drain & Spin (pr=9, pr_code=11) with spin=0 is Solo Scarico
+    if (pr_code_val == 11 or pr_val == 9):
+        if spin_val == 0:
+            return WASHER_PROGRAMS.get("drain_only")
+        if spin_val is not None and spin_val > 0:
+            return WASHER_PROGRAMS.get("drain_spin")
+
     if pr_code_val is not None:
         # 1. Exact match on both knob dial position (Pr) and internal cycle code (PrCode)
         for prog in WASHER_PROGRAMS.values():
