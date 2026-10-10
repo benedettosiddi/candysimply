@@ -144,21 +144,24 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: Any
     ) -> config_entries.FlowResult:
         """Handle Zeroconf / mDNS discovery."""
-        host = getattr(discovery_info, "host", "") or getattr(discovery_info, "ip_address", "")
+        host_val = getattr(discovery_info, "host", "") or getattr(discovery_info, "ip_address", "") or getattr(discovery_info, "ip", "")
+        host = str(host_val).strip() if host_val else ""
         if not host:
             return self.async_abort(reason="cannot_connect")
 
         # Abort immediately if device IP is already configured in Home Assistant
         for entry in self._async_current_entries():
-            if entry.data.get(CONF_IP_ADDRESS) == host:
+            cfg_ip = str(entry.data.get(CONF_IP_ADDRESS, "")).strip()
+            if cfg_ip and cfg_ip == host:
                 return self.async_abort(reason="already_configured")
 
         props = getattr(discovery_info, "properties", {}) or {}
         mac = props.get("mac")
         if mac:
-            mac_clean = str(mac).replace(":", "").lower()
+            mac_clean = str(mac).replace(":", "").replace("-", "").lower()
             for entry in self._async_current_entries():
-                if entry.unique_id in (f"candy_{mac_clean}", mac_clean):
+                entry_uid = str(entry.unique_id or "").lower()
+                if mac_clean in entry_uid or entry_uid in (f"candy_{mac_clean}", mac_clean):
                     return self.async_abort(reason="already_configured")
 
         unique_id = f"candy_{host.replace('.', '_')}"
@@ -180,20 +183,23 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: Any
     ) -> config_entries.FlowResult:
         """Handle DHCP discovery."""
-        host = getattr(discovery_info, "ip", "")
+        host_val = getattr(discovery_info, "ip", "") or getattr(discovery_info, "host", "")
+        host = str(host_val).strip() if host_val else ""
         mac = getattr(discovery_info, "macaddress", "")
         if not host:
             return self.async_abort(reason="cannot_connect")
 
         # Abort immediately if device IP is already configured in Home Assistant
         for entry in self._async_current_entries():
-            if entry.data.get(CONF_IP_ADDRESS) == host:
+            cfg_ip = str(entry.data.get(CONF_IP_ADDRESS, "")).strip()
+            if cfg_ip and cfg_ip == host:
                 return self.async_abort(reason="already_configured")
 
         if mac:
-            mac_clean = str(mac).replace(":", "").lower()
+            mac_clean = str(mac).replace(":", "").replace("-", "").lower()
             for entry in self._async_current_entries():
-                if entry.unique_id in (f"candy_{mac_clean}", mac_clean):
+                entry_uid = str(entry.unique_id or "").lower()
+                if mac_clean in entry_uid or entry_uid in (f"candy_{mac_clean}", mac_clean):
                     return self.async_abort(reason="already_configured")
 
         unique_id = f"candy_{host.replace('.', '_')}"
@@ -217,12 +223,14 @@ class CandySimplyFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle SSDP discovery."""
         location = getattr(discovery_info, "ssdp_location", "")
         host = urlparse(location).hostname if location else ""
+        host = str(host).strip() if host else ""
         if not host:
             return self.async_abort(reason="cannot_connect")
 
         # Abort immediately if device IP is already configured in Home Assistant
         for entry in self._async_current_entries():
-            if entry.data.get(CONF_IP_ADDRESS) == host:
+            cfg_ip = str(entry.data.get(CONF_IP_ADDRESS, "")).strip()
+            if cfg_ip and cfg_ip == host:
                 return self.async_abort(reason="already_configured")
 
         unique_id = f"candy_{host.replace('.', '_')}"
