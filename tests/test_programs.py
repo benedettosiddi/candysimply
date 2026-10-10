@@ -72,8 +72,11 @@ def test_washer_programs_count():
     p8_drain = get_washer_program_by_pr(8, 129, spin_val=0)
     assert p8_drain is not None and p8_drain.id == "drain_only"
 
-    p9 = get_washer_program_by_pr(9, 17)
-    assert p9 is not None and p9.id == "steam_refresh"
+    p9_refresh = get_washer_program_by_pr(9, 17, spin_val=0)
+    assert p9_refresh is not None and p9_refresh.id == "steam_refresh"
+
+    p9_wash = get_washer_program_by_pr(9, 17, spin_val=1000)
+    assert p9_wash is not None and p9_wash.id == "steam_easy_iron"
 
     p10 = get_washer_program_by_pr(10, 0)
     assert p10 is not None and p10.id == "drying" and p10.is_dry_only

@@ -151,17 +151,31 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
     ),
     "steam_refresh": WasherProgram(
         id="steam_refresh",
-        name_it="Vapore (Refresh)",
+        name_it="Rinfresca a Vapore (Refresh)",
         name_en="Steam Refresh",
         pr=9,
         pr_code=17,
         default_temp=0,
         max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=False,
+        supports_steam=True,
+        description="Trattamento a solo vapore (senza carico d'acqua nel cestello, 0 giri centrifuga) per igienizzare, distendere le fibre e togliere gli odori a secco.",
+    ),
+    "steam_easy_iron": WasherProgram(
+        id="steam_easy_iron",
+        name_it="Stiro Facile / Vapore (Lavaggio)",
+        name_en="Easy Iron / Steam Wash",
+        pr=9,
+        pr_code=17,
+        default_temp=0,
+        max_temp=30,
         default_spin=1000,
         max_spin=1000,
         supports_drying=False,
         supports_steam=True,
-        description="Trattamento vapore 37 min per rinfrescare e distendere le fibre senza lavare.",
+        description="Mini-lavaggio rapido ad acqua con fase vapore finale e centrifuga a 1000 giri per facilitare la stiratura.",
     ),
     "drying": WasherProgram(
         id="drying",
@@ -603,9 +617,11 @@ def get_washer_program_by_pr(
     if pr_val == 10:
         return WASHER_PROGRAMS.get("drying")
 
-    # 3. Vapore Refresh (Pr=9 o PrCode=17)
+    # 3. Vapore / Refresh (Pr=9 o PrCode=17)
     if pr_val == 9 or pr_code_val == 17:
-        return WASHER_PROGRAMS.get("steam_refresh")
+        if spin_val == 0:
+            return WASHER_PROGRAMS.get("steam_refresh")
+        return WASHER_PROGRAMS.get("steam_easy_iron")
 
     # 4. Solo Risciacqui (Pr=7 o PrCode=35)
     if pr_val == 7 or pr_code_val == 35:
