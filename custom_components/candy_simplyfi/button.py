@@ -140,8 +140,18 @@ class CandyStartProgramButton(CandyBaseButton):
             dry_t = self.coordinator.staged_dry_time
             if dry_t is None and staged_prog:
                 dry_t = getattr(staged_prog, "default_dry_time", None)
-            if getattr(staged_prog, "is_dry_only", False) and (dry_t is None or dry_t == 0):
-                dry_t = 2
+
+            pr_code = staged_prog.pr_code
+
+            # SAFETY GUARANTEE FOR DRY-ONLY PROGRAMS:
+            # Standalone drying cycles use dial Pr=10 with purely thermal heat and forced air.
+            # Temperature and Spin MUST be 0, and PrCode MUST NOT be sent.
+            if getattr(staged_prog, "is_dry_only", False):
+                temp = 0
+                spin = 0
+                pr_code = None
+                if dry_t is None or dry_t == 0:
+                    dry_t = getattr(staged_prog, "default_dry_time", 2) or 2
 
             opts = dict(self.coordinator.staged_options)
             delay = int(self.coordinator.staged_delay_start)
@@ -151,7 +161,7 @@ class CandyStartProgramButton(CandyBaseButton):
                 client.host,
                 staged_prog.pr,
                 staged_prog.name_it,
-                staged_prog.pr_code,
+                pr_code,
                 temp,
                 spin,
                 dry_t,
@@ -159,7 +169,7 @@ class CandyStartProgramButton(CandyBaseButton):
             )
             await client.async_start_program_washer(
                 pr=staged_prog.pr,
-                pr_code=staged_prog.pr_code,
+                pr_code=pr_code,
                 temp=temp,
                 spin=spin,
                 dry_time=dry_t,

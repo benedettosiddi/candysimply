@@ -78,8 +78,24 @@ def test_washer_programs_count():
     p9_wash = get_washer_program_by_pr(9, 17, spin_val=1000)
     assert p9_wash is not None and p9_wash.id == "steam_easy_iron"
 
-    p10 = get_washer_program_by_pr(10, 0)
+    p10 = get_washer_program_by_pr(10, dry_t_val=2)
     assert p10 is not None and p10.id == "drying" and p10.is_dry_only
+
+    p10_warm = get_washer_program_by_pr(10, dry_t_val=30)
+    assert p10_warm is not None and p10_warm.id == "warm_air_refresh" and p10_warm.is_dry_only
+
+    p10_del = get_washer_program_by_pr(10, dry_t_val=1)
+    assert p10_del is not None and p10_del.id == "dry_delicates_synthetics" and p10_del.is_dry_only
+
+    # Verified rapid wash cycles under Pr=15
+    p15_14 = get_washer_program_by_pr(15, 44)
+    assert p15_14 is not None and p15_14.id == "rapid_14" and not p15_14.is_dry_only
+
+    p15_30 = get_washer_program_by_pr(15, 43)
+    assert p15_30 is not None and p15_30.id == "rapid_30" and not p15_30.is_dry_only
+
+    p15_44 = get_washer_program_by_pr(15, 42)
+    assert p15_44 is not None and p15_44.id == "rapid_44" and not p15_44.is_dry_only
 
     assert "warm_air_refresh" in WASHER_PROGRAMS
     warm_p = WASHER_PROGRAMS["warm_air_refresh"]

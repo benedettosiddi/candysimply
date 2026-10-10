@@ -179,10 +179,10 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
     ),
     "drying": WasherProgram(
         id="drying",
-        name_it="Solo Asciugatura (Aria Calda / Pronto Armadio)",
-        name_en="Dry Only (Hot Air / Cupboard Dry)",
+        name_it="Solo Asciugatura Cotone (Alta Temp - Pronto Armadio)",
+        name_en="Dry Only Cottons (High Heat - Cupboard Dry)",
         pr=10,
-        pr_code=0,
+        pr_code=None,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -193,12 +193,28 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         is_dry_only=True,
         description="Ciclo termico ad aria calda forzata senza acqua: asporta l'umidità e lascia i capi caldi, soffici e completamente asciutti per l'armadio.",
     ),
+    "dry_delicates_synthetics": WasherProgram(
+        id="dry_delicates_synthetics",
+        name_it="Solo Asciugatura Sintetici & Delicati (Bassa Temp)",
+        name_en="Dry Only Synthetics & Delicates (Low Heat)",
+        pr=10,
+        pr_code=None,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=True,
+        supports_steam=False,
+        default_dry_time=1,
+        is_dry_only=True,
+        description="Asciugatura delicata ad aria calda a temperatura moderata senza acqua per fibre sintetiche e capi delicati.",
+    ),
     "warm_air_refresh": WasherProgram(
         id="warm_air_refresh",
-        name_it="Rinfresca a Caldo Antipiega (Asciugatura a Tempo 30 Min)",
-        name_en="Warm Air Anti-Crease Refresh (Timed Dry 30 Min)",
+        name_it="Rinfresca a Caldo Antipiega (Aria Calda 30 Min)",
+        name_en="Warm Air Anti-Crease Refresh (Hot Air 30 Min)",
         pr=10,
-        pr_code=0,
+        pr_code=None,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -207,7 +223,55 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         supports_steam=False,
         default_dry_time=30,
         is_dry_only=True,
-        description="Ciclo ad aria calda ventilata a secco (senza acqua) per distendere le pieghe, togliere gli odori di chiuso e rinfrescare capi asciutti senza bagnarli.",
+        description="Ciclo termico a secco di 30 minuti ad aria calda ventilata (senza acqua) per distendere le pieghe, togliere gli odori di chiuso e rinfrescare capi asciutti.",
+    ),
+    "dry_timed_60": WasherProgram(
+        id="dry_timed_60",
+        name_it="Solo Asciugatura a Tempo (60 Minuti)",
+        name_en="Timed Dry Only (60 Minutes)",
+        pr=10,
+        pr_code=None,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=True,
+        supports_steam=False,
+        default_dry_time=60,
+        is_dry_only=True,
+        description="Asciugatura controllata a tempo di 60 minuti ad aria calda forzata senza acqua.",
+    ),
+    "dry_timed_90": WasherProgram(
+        id="dry_timed_90",
+        name_it="Solo Asciugatura a Tempo (90 Minuti)",
+        name_en="Timed Dry Only (90 Minutes)",
+        pr=10,
+        pr_code=None,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=True,
+        supports_steam=False,
+        default_dry_time=90,
+        is_dry_only=True,
+        description="Asciugatura prolungata a tempo di 90 minuti ad aria calda forzata senza acqua.",
+    ),
+    "dry_timed_120": WasherProgram(
+        id="dry_timed_120",
+        name_it="Solo Asciugatura a Tempo (120 Minuti)",
+        name_en="Timed Dry Only (120 Minutes)",
+        pr=10,
+        pr_code=None,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=True,
+        supports_steam=False,
+        default_dry_time=120,
+        is_dry_only=True,
+        description="Asciugatura massima a tempo di 120 minuti per carichi pesanti e spugne senza acqua.",
     ),
 
     # --- Programmi Aggiuntivi Speciali & Downloadable (WA_PROG / DUAL_WM_WD) ---
@@ -304,13 +368,69 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         description="Ciclo con getti d'acqua e risciacqui mirati per staccare peli da coperte e vestiti.",
     ),
 
-    # --- Programmi Combinati Lavaggio + Asciugatura & Solo Asciugatura (Lavasciuga) ---
+    # --- Programmi Rapidi & Speciali Lavaggio (Pr=15 con PrCode) ---
+    "rapid_14": WasherProgram(
+        id="rapid_14",
+        name_it="Rapido 14' Minuti (Minilavaggio Veloce)",
+        name_en="Rapid 14 Min (Quick Mini-Wash)",
+        pr=15,
+        pr_code=44,
+        default_temp=30,
+        max_temp=40,
+        default_spin=1000,
+        max_spin=1400,
+        supports_drying=True,
+        is_dry_only=False,
+        description="Ciclo brevissimo di lavaggio ad acqua per piccoli carichi (fino a 1.5kg) in soli 14 minuti.",
+    ),
+    "rapid_30": WasherProgram(
+        id="rapid_30",
+        name_it="Rapido 30' Minuti (Lavaggio Veloce)",
+        name_en="Rapid 30 Min (Fast Wash)",
+        pr=15,
+        pr_code=43,
+        default_temp=30,
+        max_temp=40,
+        default_spin=1000,
+        max_spin=1400,
+        supports_drying=True,
+        is_dry_only=False,
+        description="Lavaggio rapido ad acqua in 30 minuti per carichi leggeri normalmente sporchi.",
+    ),
+    "rapid_44": WasherProgram(
+        id="rapid_44",
+        name_it="Rapido 44' Minuti (Lavaggio Quotidiano)",
+        name_en="Rapid 44 Min (Daily Wash)",
+        pr=15,
+        pr_code=42,
+        default_temp=40,
+        max_temp=40,
+        default_spin=1200,
+        max_spin=1400,
+        supports_drying=True,
+        is_dry_only=False,
+        description="Lavaggio rapido completo ad acqua in 44 minuti.",
+    ),
+    "rapid_59": WasherProgram(
+        id="rapid_59",
+        name_it="Rapido 59' Minuti (A Tutto Carico)",
+        name_en="Rapid 59 Min (Full Load)",
+        pr=15,
+        pr_code=40,
+        default_temp=40,
+        max_temp=60,
+        default_spin=1400,
+        max_spin=1400,
+        supports_drying=True,
+        is_dry_only=False,
+        description="Ciclo rapido ad acqua da 59 minuti ad alte prestazioni a pieno carico.",
+    ),
     "wd_wash_dry_59": WasherProgram(
         id="wd_wash_dry_59",
         name_it="Lava & Asciuga 59 Minuti (Completo)",
         name_en="Wash & Dry 59 Min",
         pr=15,
-        pr_code=40,
+        pr_code=41,
         default_temp=30,
         max_temp=40,
         default_spin=1400,
@@ -318,81 +438,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         supports_drying=True,
         default_dry_time=2,
         is_dry_only=False,
-        description="Lava e asciuga fino a 1.5kg in soli 59 minuti.",
-    ),
-    "wd_auto_care": WasherProgram(
-        id="wd_auto_care",
-        name_it="Auto Care Lava & Asciuga Quotidiano",
-        name_en="Auto Care Wash & Dry",
-        pr=15,
-        pr_code=41,
-        default_temp=40,
-        max_temp=60,
-        default_spin=1400,
-        max_spin=1400,
-        supports_drying=True,
-        default_dry_time=2,
-        is_dry_only=False,
-        description="Ciclo completo di lavaggio e asciugatura continua senza interruzioni.",
-    ),
-    "wd_dry_cotton": WasherProgram(
-        id="wd_dry_cotton",
-        name_it="Solo Asciugatura Cotone (Alta Temperatura - Pronto Armadio)",
-        name_en="Dry Cottons (High Heat - Cupboard Dry)",
-        pr=15,
-        pr_code=42,
-        default_temp=0,
-        max_temp=0,
-        default_spin=0,
-        max_spin=0,
-        supports_drying=True,
-        default_dry_time=2,
-        is_dry_only=True,
-        description="Asciugatura potente ad aria calda per cotone, spugne e biancheria resistente. I capi escono caldi e completamente asciutti per l'armadio.",
-    ),
-    "wd_dry_synthetic": WasherProgram(
-        id="wd_dry_synthetic",
-        name_it="Solo Asciugatura Sintetici & Misti (Media Temperatura - Pronto Armadio)",
-        name_en="Dry Synthetics (Low Heat - Cupboard Dry)",
-        pr=15,
-        pr_code=43,
-        default_temp=0,
-        max_temp=0,
-        default_spin=0,
-        max_spin=0,
-        supports_drying=True,
-        default_dry_time=2,
-        is_dry_only=True,
-        description="Asciugatura delicata ad aria calda a media temperatura per fibre sintetiche e capi misti. I capi escono asciutti per l'armadio.",
-    ),
-    "wd_dry_wool": WasherProgram(
-        id="wd_dry_wool",
-        name_it="Solo Asciugatura Delicata Lana",
-        name_en="Dry Wool",
-        pr=15,
-        pr_code=44,
-        default_temp=0,
-        max_temp=0,
-        default_spin=0,
-        max_spin=0,
-        supports_drying=True,
-        default_dry_time=1,
-        is_dry_only=True,
-        description="Asciugatura a bassa temperatura controllata per capi in lana adatti.",
-    ),
-    "wd_steam_refresh": WasherProgram(
-        id="wd_steam_refresh",
-        name_it="Trattamento Vapore Pre-Stiro Speciale (Inumidimento)",
-        name_en="Special Steam Pre-Iron Treatment",
-        pr=15,
-        pr_code=45,
-        default_temp=0,
-        max_temp=0,
-        default_spin=0,
-        max_spin=0,
-        supports_drying=False,
-        supports_steam=True,
-        description="Trattamento a vapore umido (20-25 min): distende le fibre prima della stiratura con il ferro. ATTENZIONE: i capi escono umidi da stendere o stirare a ferro.",
+        description="Lava e asciuga consecutivamente fino a 1.5kg in soli 59 minuti senza interruzioni.",
     ),
 }
 
@@ -620,9 +666,12 @@ DISHWASHER_PROGRAMS: Dict[str, DishwasherProgram] = {
 }
 
 def get_washer_program_by_pr(
-    pr_val: int, pr_code_val: Optional[int] = None, spin_val: Optional[int] = None
+    pr_val: int,
+    pr_code_val: Optional[int] = None,
+    spin_val: Optional[int] = None,
+    dry_t_val: Optional[Any] = None,
 ) -> Optional[WasherProgram]:
-    """Find washer program matching Pr and optionally PrCode and spin speed."""
+    """Find washer program matching Pr and optionally PrCode, spin speed, and dry time."""
     # 1. Scarico & Centrifuga (Pr=8 o PrCode=129)
     if pr_val == 8 or pr_code_val == 129:
         if spin_val == 0:
@@ -631,6 +680,21 @@ def get_washer_program_by_pr(
 
     # 2. Solo Asciugatura (Pr=10)
     if pr_val == 10:
+        try:
+            dt = int(dry_t_val) if dry_t_val is not None else 0
+        except (ValueError, TypeError):
+            dt = 0
+
+        if dt == 30:
+            return WASHER_PROGRAMS.get("warm_air_refresh")
+        elif dt == 60:
+            return WASHER_PROGRAMS.get("dry_timed_60")
+        elif dt == 90:
+            return WASHER_PROGRAMS.get("dry_timed_90")
+        elif dt == 120:
+            return WASHER_PROGRAMS.get("dry_timed_120")
+        elif dt == 1:
+            return WASHER_PROGRAMS.get("dry_delicates_synthetics")
         return WASHER_PROGRAMS.get("drying")
 
     # 3. Vapore / Refresh (Pr=9 o PrCode=17)
@@ -664,7 +728,7 @@ def get_washer_program_by_pr(
         return WASHER_PROGRAMS.get("cottons_resistant")
 
     # 10. Fallback per programmi estesi / scaricabili
-    if pr_code_val is not None:
+    if pr_code_val is not None and pr_code_val > 0:
         for prog in WASHER_PROGRAMS.values():
             if prog.pr == pr_val and prog.pr_code == pr_code_val:
                 return prog

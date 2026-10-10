@@ -418,7 +418,7 @@ class CandyLocalClient:
             "PrNm": str(pr),
             "Pr": str(pr),
         }
-        if pr_code is not None:
+        if pr_code is not None and int(pr_code) > 0:
             params["PrCode"] = str(pr_code)
         if temp is not None:
             params["Temp"] = str(temp)

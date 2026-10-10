@@ -684,7 +684,7 @@ class CandyCard extends HTMLElement {
           selectElem.appendChild(optEl);
         });
       }
-      if (currentOpt && selectElem.value !== currentOpt) {
+      if (!this._userSelecting && currentOpt && selectElem.value !== currentOpt) {
         selectElem.value = currentOpt;
       }
     }
@@ -2266,7 +2266,9 @@ class CandyCard extends HTMLElement {
         const val = e.target.value;
         const entities = this._getEntitiesMap();
         if (entities.programSelect) {
+          this._userSelecting = true;
           this._selectOption(entities.programSelect, val);
+          setTimeout(() => { this._userSelecting = false; }, 3500);
         }
       });
     }

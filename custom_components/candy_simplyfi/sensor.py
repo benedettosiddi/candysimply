@@ -159,7 +159,8 @@ class CandyProgramSensor(CandyBaseSensor):
         pr_val = data.get("pr", 0)
         pr_code_val = data.get("pr_code")
         spin_val = data.get("spin_speed")
-        prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val)
+        dry_t_val = data.get("dry_t")
+        prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val, dry_t_val)
         if prog:
             return prog.name_it
         if pr_val > 0:
@@ -185,7 +186,8 @@ class CandyProgramSensor(CandyBaseSensor):
         pr_val = data.get("pr", 0)
         pr_code_val = data.get("pr_code")
         spin_val = data.get("spin_speed")
-        prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val)
+        dry_t_val = data.get("dry_t")
+        prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val, dry_t_val)
         if prog:
             return {
                 "dial_position": prog.pr,

@@ -123,7 +123,8 @@ class CandyWasherProgramSelect(CandyBaseSelect):
             pr_val = data.get("pr", 0)
             pr_code_val = data.get("pr_code")
             spin_val = data.get("spin_speed")
-            active_prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val)
+            dry_t_val = data.get("dry_t")
+            active_prog = get_washer_program_by_pr(pr_val, pr_code_val, spin_val, dry_t_val)
             if active_prog and active_prog.name_it in self._programs_by_name:
                 return active_prog.name_it
 
@@ -138,12 +139,17 @@ class CandyWasherProgramSelect(CandyBaseSelect):
         prog = self._programs_by_name.get(option)
         if prog:
             self.coordinator.staged_program = prog
-            self.coordinator.staged_temp = prog.default_temp
-            self.coordinator.staged_spin = prog.default_spin
-            if getattr(prog, "default_dry_time", None) is not None:
-                self.coordinator.staged_dry_time = prog.default_dry_time
-            elif not prog.supports_drying:
-                self.coordinator.staged_dry_time = 0
+            if getattr(prog, "is_dry_only", False):
+                self.coordinator.staged_temp = 0
+                self.coordinator.staged_spin = 0
+                self.coordinator.staged_dry_time = getattr(prog, "default_dry_time", 2)
+            else:
+                self.coordinator.staged_temp = prog.default_temp
+                self.coordinator.staged_spin = prog.default_spin
+                if getattr(prog, "default_dry_time", None) is not None:
+                    self.coordinator.staged_dry_time = prog.default_dry_time
+                elif not prog.supports_drying:
+                    self.coordinator.staged_dry_time = 0
         self.async_write_ha_state()
         self.coordinator.async_update_listeners()
 
@@ -222,6 +228,10 @@ class CandyTemperatureSelect(CandyBaseSelect):
             if formatted in self._attr_options:
                 return formatted
 
+        staged_prog = self.coordinator.staged_program
+        if staged_prog and getattr(staged_prog, "is_dry_only", False):
+            return "Freddo (0°C)"
+
         target_temp = self.coordinator.staged_temp
         if target_temp is not None:
             formatted = f"{target_temp}°C" if target_temp > 0 else "Freddo (0°C)"
@@ -262,6 +272,10 @@ class CandySpinSpeedSelect(CandyBaseSelect):
             formatted = f"{spin} RPM" if spin > 0 else "No Centrifuga (0 RPM)"
             if formatted in self._attr_options:
                 return formatted
+
+        staged_prog = self.coordinator.staged_program
+        if staged_prog and getattr(staged_prog, "is_dry_only", False):
+            return "No Centrifuga (0 RPM)"
 
         target_spin = self.coordinator.staged_spin
         if target_spin is not None:
