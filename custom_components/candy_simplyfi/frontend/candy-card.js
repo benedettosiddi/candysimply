@@ -885,32 +885,40 @@ class CandyCard extends HTMLElement {
         /* Visual Box Appliance */
         .appliance-container {
           display: grid;
-          grid-template-columns: 165px 1fr;
-          gap: 18px;
+          grid-template-columns: 140px minmax(0, 1fr);
+          gap: 14px;
           align-items: center;
           background: rgba(255, 255, 255, 0.02);
           border-radius: 16px;
-          padding: 16px;
+          padding: 14px;
           border: 1px solid rgba(255, 255, 255, 0.05);
           margin-bottom: 14px;
+          min-width: 0;
+          overflow: hidden;
+          box-sizing: border-box;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 440px) {
           .appliance-container {
             grid-template-columns: 1fr;
             justify-items: center;
             text-align: center;
+            gap: 12px;
+          }
+          .timer-row {
+            justify-content: center;
           }
         }
 
         /* Visual Graphic Container */
         .appliance-visual {
           position: relative;
-          width: 154px;
-          height: 156px;
+          width: 140px;
+          height: 144px;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         /* ====================================================================
@@ -918,8 +926,8 @@ class CandyCard extends HTMLElement {
            ==================================================================== */
         .washer-porthole {
           position: relative;
-          width: 150px;
-          height: 150px;
+          width: 138px;
+          height: 138px;
           border-radius: 50%;
           background: linear-gradient(145deg, #3d4a5d 0%, #1a222c 100%);
           box-shadow: inset 0 3px 8px rgba(255, 255, 255, 0.28),
@@ -1247,8 +1255,8 @@ class CandyCard extends HTMLElement {
            ==================================================================== */
         .dishwasher-cabinet {
           position: relative;
-          width: 152px;
-          height: 156px;
+          width: 138px;
+          height: 144px;
           background: var(--candy-metallic);
           border-radius: 12px;
           border: 2px solid #37474f;
@@ -1547,45 +1555,55 @@ class CandyCard extends HTMLElement {
         .digital-panel {
           display: flex;
           flex-direction: column;
-          gap: 5px;
+          gap: 3px;
+          min-width: 0;
+          overflow: hidden;
+          width: 100%;
         }
 
         .timer-row {
           display: flex;
           align-items: baseline;
-          gap: 10px;
+          gap: 8px;
+          flex-wrap: wrap;
+          min-width: 0;
         }
 
         .digital-timer {
           font-family: "Courier New", Courier, monospace;
-          font-size: 38px;
+          font-size: 32px;
           font-weight: 800;
-          letter-spacing: 1.5px;
+          letter-spacing: 1px;
           color: #ffffff;
           text-shadow: 0 0 14px var(--candy-blue-glow);
           line-height: 1;
+          white-space: nowrap;
         }
 
         .timer-label {
-          font-size: 11px;
+          font-size: 10px;
           color: #90a4ae;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.8px;
+          white-space: nowrap;
         }
 
         .current-program-name {
-          font-size: 15px;
+          font-size: 13.5px;
           font-weight: 600;
           color: #e0e0e0;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          line-height: 1.3;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          margin-top: 2px;
         }
 
         .current-phase-name {
-          font-size: 13px;
+          font-size: 12px;
           color: #00d2ff;
           font-weight: 500;
+          line-height: 1.25;
+          word-break: break-word;
         }
 
         .cycle-live-description {
@@ -1594,6 +1612,8 @@ class CandyCard extends HTMLElement {
           font-style: italic;
           line-height: 1.3;
           margin-top: 2px;
+          word-break: break-word;
+          overflow-wrap: break-word;
         }
 
         /* Griglia Parametri (Washer) */
@@ -2364,4 +2384,4 @@ if (!window.customCards.some(card => card.type === 'candy-card')) {
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.3.0 Animazioni Fotorealistiche Dishwasher & Washer-Dryer ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.3.1 Layout Ottimizzato & No Overflow ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
