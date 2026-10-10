@@ -345,18 +345,31 @@ def test_coordinator_dishwasher_standby_vs_running():
     assert parsed_running["is_paused"] is False
     assert parsed_running["start_stop"] == "1"
 
-    # 3. Paused: dial at P2, StartStop="1", StatoDWash="3"
-    paused_raw = {
+    # 3. Manual running: dial at P2, StartStop="0", StatoDWash="3" (user pressed start on machine)
+    manual_running_raw = {
         "statusDWash": {
             "StatoDWash": "3",
-            "StartStop": "1",
+            "StartStop": "0",
             "Program": "P2",
-            "RemTime": "125",
+            "RemTime": "127",
         }
     }
-    parsed_paused = coordinator._parse_data(paused_raw)
-    assert parsed_paused["is_running"] is False
-    assert parsed_paused["is_paused"] is True
+    parsed_manual = coordinator._parse_data(manual_running_raw)
+    assert parsed_manual["is_running"] is True
+    assert parsed_manual["is_paused"] is False
+
+    # 4. Manual drying: StatoDWash="4"
+    manual_drying_raw = {
+        "statusDWash": {
+            "StatoDWash": "4",
+            "StartStop": "0",
+            "Program": "P2",
+            "RemTime": "30",
+        }
+    }
+    parsed_drying = coordinator._parse_data(manual_drying_raw)
+    assert parsed_drying["is_running"] is True
+    assert parsed_drying["is_paused"] is False
 
 
 def test_coordinator_delval_minute_countdown():

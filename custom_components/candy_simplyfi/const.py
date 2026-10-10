@@ -82,18 +82,18 @@ WASHER_PHASES: Final = {
 # Dishwasher Modes (StatoDWash)
 DISHWASHER_MODE_OFF: Final = "0"
 DISHWASHER_MODE_STANDBY: Final = "1"
-DISHWASHER_MODE_RUNNING: Final = "2"
-DISHWASHER_MODE_PAUSED: Final = "3"
-DISHWASHER_MODE_DELAYED_START: Final = "4"
+DISHWASHER_MODE_PREWASH: Final = "2"
+DISHWASHER_MODE_RUNNING: Final = "3"
+DISHWASHER_MODE_DRYING: Final = "4"
 DISHWASHER_MODE_FINISHED: Final = "5"
 DISHWASHER_MODE_ERROR: Final = "6"
 
 DISHWASHER_MODES: Final = {
     DISHWASHER_MODE_OFF: "Spenta / Standby",
     DISHWASHER_MODE_STANDBY: "Pronta / Standby",
-    DISHWASHER_MODE_RUNNING: "In funzione",
-    DISHWASHER_MODE_PAUSED: "In pausa",
-    DISHWASHER_MODE_DELAYED_START: "Partenza ritardata",
+    DISHWASHER_MODE_PREWASH: "In funzione (Prelavaggio / Avvio)",
+    DISHWASHER_MODE_RUNNING: "In funzione (Lavaggio)",
+    DISHWASHER_MODE_DRYING: "In funzione (Asciugatura)",
     DISHWASHER_MODE_FINISHED: "Ciclo terminato",
     DISHWASHER_MODE_ERROR: "Errore",
 }
