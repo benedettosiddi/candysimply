@@ -50,13 +50,40 @@ class CandyCard extends HTMLElement {
     if (!config) {
       throw new Error('Configurazione non valida per CandyCard');
     }
+    let defaultType = config.device_type;
+    if (!defaultType) {
+      const hint = `${config.name || ''} ${config.entity_prefix || ''} ${config.entity || ''}`.toLowerCase();
+      if (hint.includes('lavastoviglie') || hint.includes('dishwasher') || hint.includes('_dw') || hint.includes('statodwash')) {
+        defaultType = 'dishwasher';
+      } else {
+        defaultType = 'washer_dryer';
+      }
+    }
     this._config = {
-      name: config.name || 'Candy Simply-Fi',
-      device_type: config.device_type || 'washer_dryer',
+      name: config.name || (defaultType === 'dishwasher' ? 'Candy Lavastoviglie' : 'Candy Simply-Fi'),
+      device_type: defaultType,
       entity_prefix: config.entity_prefix || '',
       ...config
     };
     this._render();
+  }
+
+  _isDishwasher() {
+    if (this._config.device_type === 'dishwasher') return true;
+    if (this._config.device_type === 'washer') return false;
+    const hint = `${this._config.name || ''} ${this._config.entity_prefix || ''} ${this._config.entity || ''}`.toLowerCase();
+    if (hint.includes('lavastoviglie') || hint.includes('dishwasher') || hint.includes('_dw') || hint.includes('statodwash')) {
+      return true;
+    }
+    if (this._hass && this._hass.states && this._config.entity_prefix) {
+      const p = this._config.entity_prefix.toLowerCase();
+      for (const k of Object.keys(this._hass.states)) {
+        if (k.toLowerCase().includes(p) && (k.toLowerCase().includes('statodwash') || k.toLowerCase().includes('lavastoviglie') || k.toLowerCase().includes('mancanza_sale'))) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   set hass(hass) {
@@ -75,7 +102,7 @@ class CandyCard extends HTMLElement {
 
     const patternList = Array.isArray(patterns) ? patterns : [patterns];
     const prefix = (this._config.entity_prefix || '').toLowerCase();
-    const isDishwasher = this._config.device_type === 'dishwasher';
+    const isDishwasher = this._isDishwasher();
 
     const isMatchForAppliance = (key) => {
       const lower = key.toLowerCase();
@@ -141,7 +168,7 @@ class CandyCard extends HTMLElement {
   }
 
   _getEntitiesMap() {
-    const isDishwasher = this._config.device_type === 'dishwasher';
+    const isDishwasher = this._isDishwasher();
 
     return {
       status: this._findEntity(isDishwasher ? ['stato_dwash', 'statodwash', 'stato_elettrodomestico', 'stato', 'status'] : ['stato_elettrodomestico', 'stato', 'status', 'machmd'], 'sensor'),
@@ -428,8 +455,8 @@ class CandyCard extends HTMLElement {
 
   _updateStates() {
     if (!this.shadowRoot) return;
+    const isDishwasher = this._isDishwasher();
     const entities = this._getEntitiesMap();
-    const isDishwasher = this._config.device_type === 'dishwasher';
 
     const statusVal = entities.status?.state?.state || 'Standby';
     const programVal = entities.program?.state?.state || 'Nessun programma';
@@ -666,7 +693,7 @@ class CandyCard extends HTMLElement {
   }
 
   _render() {
-    const isDishwasher = this._config.device_type === 'dishwasher';
+    const isDishwasher = this._isDishwasher();
 
     this.shadowRoot.innerHTML = `
       <style>

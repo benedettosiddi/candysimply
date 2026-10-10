@@ -523,6 +523,49 @@ def test_drain_only_and_spin_programs():
     assert prog_default.name_it == "Scarico & Centrifuga"
 
 
+def test_client_start_program_dishwasher_payload():
+    """Verify async_start_program_dishwasher constructs proper Simply-Fi payload with OpzProg bitmask and w1."""
+    import asyncio
+    client = client_mod.CandyLocalClient("1.2.3.4", key="1234567890abcdef")
+    captured_params = {}
+
+    async def mock_write(params):
+        captured_params.clear()
+        captured_params.update(params)
+        return True
+
+    client.async_write_parameters = mock_write
+
+    # 1. P2 with tabs_3in1=True (OpzProg should be 8, w1 should be 1)
+    asyncio.run(
+        client.async_start_program_dishwasher(
+            program_code="P2",
+            tabs_3in1=True,
+            extra_dry=False,
+            half_load=False,
+        )
+    )
+    assert captured_params["Program"] == "P2"
+    assert captured_params["StartStop"] == "1"
+    assert captured_params["TreinUno"] == "1"
+    assert captured_params["OpzProg"] == "8"
+    assert captured_params["w1"] == "1"
+
+    # 2. P8 (Eco) with tabs_3in1=True and extra_dry=True (OpzProg: 8 | 1 = 9, w1 should be 3)
+    asyncio.run(
+        client.async_start_program_dishwasher(
+            program_code="P8",
+            tabs_3in1=True,
+            extra_dry=True,
+            half_load=False,
+        )
+    )
+    assert captured_params["Program"] == "P8"
+    assert captured_params["OpzProg"] == "9"
+    assert captured_params["w1"] == "3"
+    assert captured_params["ExtraDry"] == "1"
+
+
 if __name__ == "__main__":
     test_coordinator_washer_remote_control_wifistatus()
     test_coordinator_staged_settings_preserved_across_updates()
@@ -534,6 +577,7 @@ if __name__ == "__main__":
     test_coordinator_delval_minute_countdown()
     test_drying_only_and_phase_sensor()
     test_drain_only_and_spin_programs()
+    test_client_start_program_dishwasher_payload()
     print("ALL COORDINATOR & CONTROLS TESTS PASSED 100%!")
 
 

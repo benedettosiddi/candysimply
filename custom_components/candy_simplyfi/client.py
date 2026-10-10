@@ -33,6 +33,20 @@ STATUS_ROOTS = {
     "statusWCool": "wine_cooler",
 }
 
+# Mapping of dishwasher programs to w1 selector indices (verified from Simply-Fi app packets)
+DW_PROGRAM_W1_MAP: Dict[str, str] = {
+    "P1": "3",  # Eco 45°C
+    "P2": "1",  # Intensivo 75°C
+    "P3": "2",  # Universale 60°C
+    "P4": "5",  # Zoom 39'
+    "P5": "2",  # Rapido 24' / Universale
+    "P6": "4",  # Prelavaggio / Ammollo
+    "P7": "5",  # Igienizzante 75°C
+    "P8": "3",  # Eco
+    "P12": "4",  # Prelavaggio
+    "P13": "5",  # Total Care
+}
+
 # Per-host lock and rate limiting to prevent crashing appliance microcontrollers
 _HOST_LOCKS: dict[str, asyncio.Lock] = {}
 _HOST_LAST_REQ: dict[str, float] = {}
@@ -434,22 +448,42 @@ class CandyLocalClient:
         eco: bool = False,
         delay_hours: int = 0,
     ) -> bool:
-        """Start a program on dishwasher."""
+        """Start a program on dishwasher with verified Simply-Fi bitmasks."""
         clean_prog = program_code.upper()
         if not clean_prog.startswith("P"):
             clean_prog = f"P{clean_prog}"
 
+        # OpzProg bitmask for Candy Simply-Fi dishwashers:
+        # Bit 0 (1): Extra Dry
+        # Bit 1 (2): Half Load (MetaCarico)
+        # Bit 2 (4): Eco
+        # Bit 3 (8): 3-in-1 Tabs (TreinUno)
+        # Bit 4 (16): Open Door Opt
+        opz_prog = 0
+        if extra_dry:
+            opz_prog |= 1
+        if half_load:
+            opz_prog |= 2
+        if eco:
+            opz_prog |= 4
+        if tabs_3in1:
+            opz_prog |= 8
+        if open_door:
+            opz_prog |= 16
+
+        w1_val = DW_PROGRAM_W1_MAP.get(clean_prog, "1")
+
         params: Dict[str, Any] = {
-            "StartStop": "1",
-            "Program": clean_prog,
             "DelayStart": str(delay_hours),
             "ExtraDry": "1" if extra_dry else "0",
-            "OpenDoorOpt": "7" if open_door else "0",
+            "OpenDoorOpt": "1" if open_door else "0",
             "TreinUno": "1" if tabs_3in1 else "0",
+            "Program": clean_prog,
             "MetaCarico": "1" if half_load else "0",
             "eco": "1" if eco else "0",
-            "W1": "1",
-            "OpzProg": "p",
+            "OpzProg": str(opz_prog),
+            "w1": str(w1_val),
+            "StartStop": "1",
         }
         return await self.async_write_parameters(params)
 
