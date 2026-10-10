@@ -90,16 +90,11 @@ class CandyStartProgramButton(CandyBaseButton):
         client = self.coordinator.client
         app_type = self.coordinator.appliance_type
 
-        # Verify remote control availability
+        # Note remote control state (log info, do not block prematurely to avoid cache race conditions)
         if not data.get("remote_control_enabled", True):
-            _LOGGER.warning(
-                "Remote control disabled on appliance %s. Physical dial must be set to Wi-Fi position.",
+            _LOGGER.info(
+                "Remote control not reported active in cache for %s. Sending command anyway in case of cache delay.",
                 client.host,
-            )
-            from homeassistant.exceptions import HomeAssistantError
-            raise HomeAssistantError(
-                "Il controllo remoto non è attivo sull'elettrodomestico. "
-                "Posiziona la manopola fisica su 'Wi-Fi' o 'Controllo Remoto' per consentire l'avvio del ciclo."
             )
 
         if app_type == APPLIANCE_TYPE_DISHWASHER:

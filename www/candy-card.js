@@ -223,7 +223,9 @@ class CandyCard extends HTMLElement {
     const spinVal = !isNaN(parsedSpin) ? parsedSpin : 0;
 
     const isRunning = isDishwasher
-      ? (entities.running ? entities.running.state?.state === 'on' : (statusVal.includes('funzione') && !statusVal.includes('standby') && !statusVal.includes('attesa')))
+      ? (entities.running?.state?.state === 'on' ||
+         (statusVal.includes('funzione') && !statusVal.includes('standby') && !statusVal.includes('attesa')) ||
+         statusVal.includes('lavaggio') || statusVal === '3' || statusVal === '4')
       : (entities.running?.state?.state === 'on' ||
          statusVal.includes('funzione') || statusVal === '2' ||
          (phaseVal && !phaseVal.includes('non avviato') && !phaseVal.includes('terminato') && phaseVal !== '0' && phaseVal !== '6'));
@@ -261,19 +263,19 @@ class CandyCard extends HTMLElement {
         if (phaseVal.includes('asciugatura') || statusVal.includes('asciugatura')) {
           dwMode = 'dw-drying';
           description = 'Fase asciugatura termica e condensazione attiva';
-        } else if (progVal.includes('intensiv') || progVal.includes('igiene') || progVal.includes('75')) {
+        } else if (progVal.includes('intensiv') || progVal.includes('igiene') || progVal.includes('75') || progVal.includes('p2')) {
           dwMode = 'dw-intensive';
           description = 'Lavaggio intensivo 75°C: getti incrociati ad alta pressione';
-        } else if (progVal.includes('delicat') || progVal.includes('cristall') || progVal.includes('vetro')) {
+        } else if (progVal.includes('delicat') || progVal.includes('cristall') || progVal.includes('vetro') || progVal.includes('p5')) {
           dwMode = 'dw-delicate';
           description = 'Lavaggio delicato calici: nebulizzazione soffice 45°C';
-        } else if (progVal.includes('rapid') || progVal.includes('zoom') || progVal.includes('24')) {
+        } else if (progVal.includes('rapid') || progVal.includes('zoom') || progVal.includes('24') || progVal.includes('p4')) {
           dwMode = 'dw-rapid';
           description = 'Ciclo Rapido Zoom: lavaggio accelerato pulsante';
         } else if (progVal.includes('prelavaggio') || progVal.includes('ammollo')) {
           dwMode = 'dw-prewash';
           description = 'Ammollo a freddo con irrorazione dolce';
-        } else if (progVal.includes('eco')) {
+        } else if (progVal.includes('eco') || progVal.includes('p1')) {
           dwMode = 'dw-eco';
           description = 'Ciclo Eco 45°C ad alta efficienza idrica';
         } else {
@@ -612,6 +614,53 @@ class CandyCard extends HTMLElement {
       }
       if (currentOpt && selectElem.value !== currentOpt) {
         selectElem.value = currentOpt;
+      }
+    }
+
+    // 8. Gestione Contestuale Dinamica Pulsanti Toolbar (Avvia, Pausa, Stop)
+    const btnStart = this.shadowRoot.querySelector('.btn-start');
+    const btnPause = this.shadowRoot.querySelector('.btn-pause');
+    const btnStop = this.shadowRoot.querySelector('.btn-stop');
+
+    if (btnStart && btnPause && btnStop) {
+      if (profile.isRunning && !profile.isPaused) {
+        // Macchina IN FUNZIONE: Avvia disabilitato, Pausa e Stop abilitati
+        btnStart.classList.add('disabled');
+        btnStart.disabled = true;
+        const startLbl = btnStart.querySelector('.btn-start-label');
+        if (startLbl) startLbl.textContent = 'In corso';
+
+        btnPause.classList.remove('disabled');
+        btnPause.disabled = false;
+        const pauseLbl = btnPause.querySelector('.btn-pause-label');
+        if (pauseLbl) pauseLbl.textContent = 'Pausa';
+
+        btnStop.classList.remove('disabled');
+        btnStop.disabled = false;
+      } else if (profile.isPaused) {
+        // Macchina IN PAUSA: Riprendi abilitato, Pausa disabilitato, Stop abilitato
+        btnStart.classList.remove('disabled');
+        btnStart.disabled = false;
+        const startLbl = btnStart.querySelector('.btn-start-label');
+        if (startLbl) startLbl.textContent = 'Riprendi';
+
+        btnPause.classList.add('disabled');
+        btnPause.disabled = true;
+
+        btnStop.classList.remove('disabled');
+        btnStop.disabled = false;
+      } else {
+        // Macchina FERMA (Standby, Spenta o Terminata): Avvia abilitato, Pausa e Stop disabilitati
+        btnStart.classList.remove('disabled');
+        btnStart.disabled = false;
+        const startLbl = btnStart.querySelector('.btn-start-label');
+        if (startLbl) startLbl.textContent = 'Avvia';
+
+        btnPause.classList.add('disabled');
+        btnPause.disabled = true;
+
+        btnStop.classList.add('disabled');
+        btnStop.disabled = true;
       }
     }
   }
@@ -1449,9 +1498,14 @@ class CandyCard extends HTMLElement {
           border: 1px solid rgba(255, 255, 255, 0.12);
           color: #cfd8dc;
         }
-        .btn-buzzer:hover {
-          background: rgba(255, 255, 255, 0.15);
-          color: #ffffff;
+        .btn-action.disabled,
+        .btn-action[disabled] {
+          opacity: 0.28 !important;
+          cursor: not-allowed !important;
+          pointer-events: none !important;
+          box-shadow: none !important;
+          transform: none !important;
+          filter: grayscale(0.85);
         }
 
         .btn-action:active { transform: scale(0.97); }
@@ -1603,15 +1657,15 @@ class CandyCard extends HTMLElement {
           <div class="action-toolbar">
             <button class="btn-action btn-start">
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              Avvia
+              <span class="btn-start-label">Avvia</span>
             </button>
             <button class="btn-action btn-pause">
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-              Pausa
+              <span class="btn-pause-label">Pausa</span>
             </button>
             <button class="btn-action btn-stop">
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-              Stop
+              <span class="btn-stop-label">Stop</span>
             </button>
             <button class="btn-action btn-buzzer" title="Emetti Bip Segnale Acustico">
               <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
@@ -1753,4 +1807,4 @@ if (!window.customCards.some(card => card.type === 'candy-card')) {
   });
 }
 
-console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.4 Perfezionamento Cicli Asciugatura & Vapore ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');
+console.info('%c CANDY-SIMPLYFI-CARD %c v1.2.5 Controlli Dinamici & Riconoscimento Cicli DW ', 'background: #0088cc; color: #fff; font-weight: bold; border-radius: 3px 0 0 3px;', 'background: #263238; color: #00d2ff; font-weight: bold; border-radius: 0 3px 3px 0;');

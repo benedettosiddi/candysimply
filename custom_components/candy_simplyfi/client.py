@@ -358,8 +358,25 @@ class CandyLocalClient:
         try:
             resp_text = await self._fetch_url(url)
             _LOGGER.debug("Candy write reply from %s: %s", self.host, resp_text)
+
+            # Check for READ ONLY rejection from microcontroller
+            check_text = resp_text
+            if self.use_encryption and self.key:
+                try:
+                    check_text = decrypt_hex_response(resp_text, self.key)
+                except Exception:
+                    pass
+
+            if "READ ONLY" in check_text or "READ_ONLY" in check_text:
+                raise CandyConnectionError(
+                    "L'elettrodomestico ha rifiutato il comando ('READ ONLY'): "
+                    "assicurati che il pulsante Controllo Remoto / Wi-Fi sia attivo sulla plancia e che lo sportello sia chiuso."
+                )
+
             return True
         except Exception as err:
+            if "READ ONLY" in str(err):
+                raise
             if self.use_encryption and not self.key:
                 fallback_url = f"http://{self.host}/http-write.json?encrypted=0&{param_str}"
                 try:
