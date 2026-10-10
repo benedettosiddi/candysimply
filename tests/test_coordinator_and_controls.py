@@ -501,24 +501,24 @@ def test_drying_only_and_phase_sensor():
 
 
 def test_drain_only_and_spin_programs():
-    """Verify that Pr=9 with spin=0 resolves to Solo Scarico and spin>0 resolves to Scarico & Centrifuga."""
+    """Verify that Pr=8 with spin=0 resolves to Solo Scarico and spin>0 resolves to Scarico & Centrifuga."""
     get_prog = programs_mod.get_washer_program_by_pr
 
     # Spin = 0 -> Solo Scarico
-    prog_drain = get_prog(9, 11, spin_val=0)
+    prog_drain = get_prog(8, 129, spin_val=0)
     assert prog_drain is not None
     assert prog_drain.name_it == "Solo Scarico"
     assert prog_drain.default_spin == 0
     assert prog_drain.max_spin == 0
 
     # Spin = 1000 -> Scarico & Centrifuga
-    prog_spin = get_prog(9, 11, spin_val=1000)
+    prog_spin = get_prog(8, 129, spin_val=1000)
     assert prog_spin is not None
     assert prog_spin.name_it == "Scarico & Centrifuga"
     assert prog_spin.default_spin == 1000
 
     # Fallback without spin_val -> Scarico & Centrifuga
-    prog_default = get_prog(9, 11)
+    prog_default = get_prog(8, 129)
     assert prog_default is not None
     assert prog_default.name_it == "Scarico & Centrifuga"
 

@@ -35,33 +35,48 @@ def test_dishwasher_programs_count():
 
 
 def test_washer_programs_count():
-    assert len(WASHER_PROGRAMS) >= 25
-    assert "cottons" in WASHER_PROGRAMS
-    assert "wd_wash_dry_59" in WASHER_PROGRAMS
-    assert "autoclean" in WASHER_PROGRAMS
-    assert "pet_hair" in WASHER_PROGRAMS
+    assert len(WASHER_PROGRAMS) >= 15
+    assert "cottons_resistant" in WASHER_PROGRAMS
+    assert "cottons_standard" in WASHER_PROGRAMS
+    assert "synthetics_colored" in WASHER_PROGRAMS
+    assert "wool" in WASHER_PROGRAMS
+    assert "delicates" in WASHER_PROGRAMS
+    assert "rinse" in WASHER_PROGRAMS
+    assert "drain_spin" in WASHER_PROGRAMS
+    assert "drain_only" in WASHER_PROGRAMS
+    assert "steam_refresh" in WASHER_PROGRAMS
+    assert "drying" in WASHER_PROGRAMS
 
-    # Check Pr lookup
-    prog = get_washer_program_by_pr(1, 1)
-    assert prog is not None
-    assert prog.pr == 1
+    # Check verified dial lookups
+    p1 = get_washer_program_by_pr(1, 65)
+    assert p1 is not None and p1.id == "cottons_resistant"
 
-    # Check extended program lookup by pr_code
-    pet_hair_prog = get_washer_program_by_pr(15, 29)
-    assert pet_hair_prog is not None
-    assert "Animali" in pet_hair_prog.name_it
+    p2 = get_washer_program_by_pr(2, 2)
+    assert p2 is not None and p2.id == "cottons_standard"
 
-    # Check steam refresh lookup (Pr 15, PrCode 45)
-    steam_prog = get_washer_program_by_pr(15, 45)
-    assert steam_prog is not None
-    assert steam_prog.id == "wd_steam_refresh"
-    assert "Vapore" in steam_prog.name_it
+    p3 = get_washer_program_by_pr(3, 3)
+    assert p3 is not None and p3.id == "synthetics_colored"
 
-    # Check easy iron lookup (Pr 13, PrCode 30)
-    easy_iron = get_washer_program_by_pr(13, 30)
-    assert easy_iron is not None
-    assert easy_iron.id == "easy_iron"
-    assert "Stiro Facile" in easy_iron.name_it
+    p4 = get_washer_program_by_pr(4, 5)
+    assert p4 is not None and p4.id == "wool"
+
+    p5 = get_washer_program_by_pr(5, 4)
+    assert p5 is not None and p5.id == "delicates"
+
+    p7 = get_washer_program_by_pr(7, 35)
+    assert p7 is not None and p7.id == "rinse"
+
+    p8_spin = get_washer_program_by_pr(8, 129, spin_val=1000)
+    assert p8_spin is not None and p8_spin.id == "drain_spin"
+
+    p8_drain = get_washer_program_by_pr(8, 129, spin_val=0)
+    assert p8_drain is not None and p8_drain.id == "drain_only"
+
+    p9 = get_washer_program_by_pr(9, 17)
+    assert p9 is not None and p9.id == "steam_refresh"
+
+    p10 = get_washer_program_by_pr(10, 0)
+    assert p10 is not None and p10.id == "drying" and p10.is_dry_only
 
 
 def test_time_formatting():

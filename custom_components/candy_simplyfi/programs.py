@@ -36,232 +36,148 @@ class DishwasherProgram:
 
 # All Washer & Washer-Dryer Programs
 WASHER_PROGRAMS: Dict[str, WasherProgram] = {
-    # --- Programmi Fisici Selettore Manopola (Knob Dial Programs) ---
-    "cottons": WasherProgram(
-        id="cottons",
-        name_it="Cotone Resistente / Bianchi",
+    # --- Programmi Reali Verificati Plancia & Selettore Candy Simply-Fi ---
+    "cottons_resistant": WasherProgram(
+        id="cottons_resistant",
+        name_it="Cotone Resistente",
         name_en="Resistant Cottons",
         pr=1,
-        pr_code=1,
-        default_temp=60,
+        pr_code=65,
+        default_temp=40,
         max_temp=90,
-        default_spin=1400,
-        max_spin=1600,
+        default_spin=1000,
+        max_spin=1500,
         supports_drying=True,
         supports_steam=True,
         description="Ciclo per cotone resistente, tovaglie e biancheria molto sporca.",
     ),
-    "cottons_prewash": WasherProgram(
-        id="cottons_prewash",
-        name_it="Cotone + Prelavaggio",
-        name_en="Cottons + Prewash",
+    "cottons_standard": WasherProgram(
+        id="cottons_standard",
+        name_it="Cotone Standard",
+        name_en="Standard Cottons",
         pr=2,
         pr_code=2,
-        default_temp=60,
+        default_temp=40,
         max_temp=90,
-        default_spin=1400,
-        max_spin=1600,
+        default_spin=1500,
+        max_spin=1500,
         supports_drying=True,
-        description="Cotone con fase di prelavaggio per macchie ostinate.",
+        supports_steam=True,
+        description="Ciclo cotone standard ad alta efficienza e centrifuga 1500 RPM.",
     ),
-    "eco_40_60": WasherProgram(
-        id="eco_40_60",
-        name_it="Eco 40-60",
-        name_en="Eco 40-60",
+    "synthetics_colored": WasherProgram(
+        id="synthetics_colored",
+        name_it="Sintetici e Colorati",
+        name_en="Synthetics & Coloured",
         pr=3,
         pr_code=3,
         default_temp=40,
         max_temp=60,
-        default_spin=1400,
-        max_spin=1400,
+        default_spin=1000,
+        max_spin=1200,
         supports_drying=True,
-        description="Massima efficienza energetica secondo normativa UE.",
+        supports_steam=True,
+        description="Tessuti sintetici, camicie e fibre miste colorate.",
     ),
-    "wash_20": WasherProgram(
-        id="wash_20",
-        name_it="Eco 20°C (Lavaggio a Freddo)",
-        name_en="Eco 20°C Wash",
+    "wool": WasherProgram(
+        id="wool",
+        name_it="Lana",
+        name_en="Wool",
         pr=4,
-        pr_code=4,
-        default_temp=20,
-        max_temp=20,
-        default_spin=1000,
-        max_spin=1400,
-        supports_drying=True,
-        description="Lavaggio a bassa temperatura ad alta resa per capi misti.",
-    ),
-    "synthetics": WasherProgram(
-        id="synthetics",
-        name_it="Sintetici & Misti Colorati",
-        name_en="Synthetics & Mixed",
-        pr=5,
         pr_code=5,
-        default_temp=40,
-        max_temp=60,
-        default_spin=1000,
-        max_spin=1200,
-        supports_drying=True,
-        supports_steam=True,
-        description="Tessuti sintetici, camicie e fibre miste resistenti.",
-    ),
-    "daily_59": WasherProgram(
-        id="daily_59",
-        name_it="Giornaliero 59' / All In One 59'",
-        name_en="Daily 59 Min / All In One",
-        pr=6,
-        pr_code=15,
-        default_temp=40,
-        max_temp=40,
-        default_spin=1000,
-        max_spin=1400,
-        supports_drying=True,
-        supports_steam=True,
-        description="Lavaggio energico completo in meno di un'ora.",
-    ),
-    "rapid_14": WasherProgram(
-        id="rapid_14",
-        name_it="Rapido 14 Minuti",
-        name_en="Rapid 14 Min",
-        pr=7,
-        pr_code=12,
-        default_temp=30,
-        max_temp=30,
-        default_spin=1000,
-        max_spin=1000,
-        supports_drying=False,
-        description="Rinfresco ultra veloce per carichi leggeri (fino a 1.5kg).",
-    ),
-    "rapid_30": WasherProgram(
-        id="rapid_30",
-        name_it="Rapido 30 Minuti",
-        name_en="Rapid 30 Min",
-        pr=7,
-        pr_code=13,
         default_temp=30,
         max_temp=40,
-        default_spin=1000,
-        max_spin=1200,
-        supports_drying=True,
-        description="Ciclo veloce per carichi mediamente sporchi fino a 2.5kg.",
-    ),
-    "rapid_44": WasherProgram(
-        id="rapid_44",
-        name_it="Rapido 44 Minuti",
-        name_en="Rapid 44 Min",
-        pr=7,
-        pr_code=14,
-        default_temp=40,
-        max_temp=40,
-        default_spin=1000,
-        max_spin=1400,
-        supports_drying=True,
-        description="Ottimo compromesso tempo e pulizia fino a 3.5kg.",
-    ),
-    "rinse": WasherProgram(
-        id="rinse",
-        name_it="Solo Risciacqui",
-        name_en="Rinse Only",
-        pr=8,
-        pr_code=10,
-        default_temp=0,
-        max_temp=0,
-        default_spin=1000,
-        max_spin=1400,
+        default_spin=800,
+        max_spin=800,
         supports_drying=False,
-        description="3 risciacqui con centrifuga intermedia e finale.",
-    ),
-    "drain_spin": WasherProgram(
-        id="drain_spin",
-        name_it="Scarico & Centrifuga",
-        name_en="Drain & Spin",
-        pr=9,
-        pr_code=11,
-        default_temp=0,
-        max_temp=0,
-        default_spin=1000,
-        max_spin=1600,
-        supports_drying=False,
-        description="Scarico rapido dell'acqua con centrifuga finale regolabile (Solo Centrifuga).",
-    ),
-    "drain_only": WasherProgram(
-        id="drain_only",
-        name_it="Solo Scarico",
-        name_en="Drain Only",
-        pr=9,
-        pr_code=11,
-        default_temp=0,
-        max_temp=0,
-        default_spin=0,
-        max_spin=0,
-        supports_drying=False,
-        description="Svuotamento rapido dell'acqua dal cestello con centrifuga esclusa (0 Giri).",
+        supports_steam=False,
+        description="Movimento culla basculante per capi in pura lana.",
     ),
     "delicates": WasherProgram(
         id="delicates",
         name_it="Delicati",
         name_en="Delicates",
-        pr=10,
-        pr_code=7,
+        pr=5,
+        pr_code=4,
         default_temp=30,
         max_temp=40,
-        default_spin=800,
+        default_spin=400,
         max_spin=800,
         supports_drying=False,
+        supports_steam=False,
         description="Capi delicati, pizzo, viscosa e tessuti fini.",
     ),
-    "wool_silk": WasherProgram(
-        id="wool_silk",
-        name_it="Lana & Seta / Lavaggio a Mano",
-        name_en="Wool & Silk / Hand Wash",
-        pr=11,
-        pr_code=8,
-        default_temp=30,
-        max_temp=40,
-        default_spin=800,
-        max_spin=800,
+    "rinse": WasherProgram(
+        id="rinse",
+        name_it="Solo Risciacqui",
+        name_en="Rinse Only",
+        pr=7,
+        pr_code=35,
+        default_temp=0,
+        max_temp=0,
+        default_spin=1000,
+        max_spin=1500,
         supports_drying=False,
-        description="Movimento basculante ultra-delicato per capi in pura lana e seta.",
+        supports_steam=False,
+        description="Ciclo di soli risciacqui con centrifuga finale regolabile.",
     ),
-    "hygiene_60": WasherProgram(
-        id="hygiene_60",
-        name_it="Igiene 60°C / Baby Care",
-        name_en="Hygiene 60°C / Baby Care",
-        pr=12,
-        pr_code=21,
-        default_temp=60,
-        max_temp=60,
-        default_spin=1200,
-        max_spin=1400,
+    "drain_spin": WasherProgram(
+        id="drain_spin",
+        name_it="Scarico & Centrifuga",
+        name_en="Drain & Spin",
+        pr=8,
+        pr_code=129,
+        default_temp=0,
+        max_temp=0,
+        default_spin=1000,
+        max_spin=1500,
+        supports_drying=False,
+        supports_steam=False,
+        description="Scarico rapido dell'acqua con centrifuga finale (10 minuti).",
+    ),
+    "drain_only": WasherProgram(
+        id="drain_only",
+        name_it="Solo Scarico",
+        name_en="Drain Only",
+        pr=8,
+        pr_code=129,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=False,
+        supports_steam=False,
+        description="Svuotamento dell'acqua dal cestello a 0 giri (senza centrifuga).",
+    ),
+    "steam_refresh": WasherProgram(
+        id="steam_refresh",
+        name_it="Vapore (Refresh)",
+        name_en="Steam Refresh",
+        pr=9,
+        pr_code=17,
+        default_temp=0,
+        max_temp=0,
+        default_spin=1000,
+        max_spin=1000,
+        supports_drying=False,
+        supports_steam=True,
+        description="Trattamento vapore 37 min per rinfrescare e distendere le fibre senza lavare.",
+    ),
+    "drying": WasherProgram(
+        id="drying",
+        name_it="Solo Asciugatura",
+        name_en="Dry Only",
+        pr=10,
+        pr_code=0,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
         supports_drying=True,
-        supports_steam=True,
-        description="Elimina acari, batteri e allergeni mantenendo 60° costanti.",
-    ),
-    "easy_iron": WasherProgram(
-        id="easy_iron",
-        name_it="Stiro Facile / Special 39'",
-        name_en="Easy Iron / Special 39 Min",
-        pr=13,
-        pr_code=30,
-        default_temp=30,
-        max_temp=40,
-        default_spin=800,
-        max_spin=1000,
-        supports_drying=False,
-        supports_steam=True,
-        description="Ciclo di lavaggio a 30°C con azione combinata antipiega per facilitare la stiratura.",
-    ),
-    "sport_fitness": WasherProgram(
-        id="sport_fitness",
-        name_it="Sport & Abbigliamento Tecnico",
-        name_en="Sport & Fitness",
-        pr=14,
-        pr_code=23,
-        default_temp=30,
-        max_temp=40,
-        default_spin=800,
-        max_spin=1000,
-        supports_drying=False,
-        description="Protegge le membrane impermeabili e l'elasticità dei capi sportivi.",
+        supports_steam=False,
+        default_dry_time=2,
+        is_dry_only=True,
+        description="Ciclo termico di sola asciugatura senza carico d'acqua.",
     ),
 
     # --- Programmi Aggiuntivi Speciali & Downloadable (WA_PROG / DUAL_WM_WD) ---
@@ -677,26 +593,57 @@ def get_washer_program_by_pr(
     pr_val: int, pr_code_val: Optional[int] = None, spin_val: Optional[int] = None
 ) -> Optional[WasherProgram]:
     """Find washer program matching Pr and optionally PrCode and spin speed."""
-    # Special case: Drain & Spin (pr=9, pr_code=11) with spin=0 is Solo Scarico
-    if (pr_code_val == 11 or pr_val == 9):
+    # 1. Scarico & Centrifuga (Pr=8 o PrCode=129)
+    if pr_val == 8 or pr_code_val == 129:
         if spin_val == 0:
             return WASHER_PROGRAMS.get("drain_only")
-        if spin_val is not None and spin_val > 0:
-            return WASHER_PROGRAMS.get("drain_spin")
+        return WASHER_PROGRAMS.get("drain_spin")
 
+    # 2. Solo Asciugatura (Pr=10)
+    if pr_val == 10:
+        return WASHER_PROGRAMS.get("drying")
+
+    # 3. Vapore Refresh (Pr=9 o PrCode=17)
+    if pr_val == 9 or pr_code_val == 17:
+        return WASHER_PROGRAMS.get("steam_refresh")
+
+    # 4. Solo Risciacqui (Pr=7 o PrCode=35)
+    if pr_val == 7 or pr_code_val == 35:
+        return WASHER_PROGRAMS.get("rinse")
+
+    # 5. Delicati (Pr=5 o PrCode=4)
+    if pr_val == 5 or pr_code_val == 4:
+        return WASHER_PROGRAMS.get("delicates")
+
+    # 6. Lana (Pr=4 o PrCode=5)
+    if pr_val == 4 or pr_code_val == 5:
+        return WASHER_PROGRAMS.get("wool")
+
+    # 7. Sintetici e Colorati (Pr=3 o PrCode=3)
+    if pr_val == 3 or pr_code_val == 3:
+        return WASHER_PROGRAMS.get("synthetics_colored")
+
+    # 8. Cotone Standard (Pr=2 o PrCode=2)
+    if pr_val == 2 or pr_code_val == 2:
+        return WASHER_PROGRAMS.get("cottons_standard")
+
+    # 9. Cotone Resistente (Pr=1 o PrCode=65)
+    if pr_val == 1 or pr_code_val == 65:
+        return WASHER_PROGRAMS.get("cottons_resistant")
+
+    # 10. Fallback per programmi estesi / scaricabili
     if pr_code_val is not None:
-        # 1. Exact match on both knob dial position (Pr) and internal cycle code (PrCode)
         for prog in WASHER_PROGRAMS.values():
             if prog.pr == pr_val and prog.pr_code == pr_code_val:
                 return prog
-        # 2. Match on PrCode if specific
         for prog in WASHER_PROGRAMS.values():
             if prog.pr_code == pr_code_val:
                 return prog
-    # 3. Fallback match on Pr dial position
+
     for prog in WASHER_PROGRAMS.values():
         if prog.pr == pr_val:
             return prog
+
     return None
 
 def get_dishwasher_program_by_code(code_str: str) -> Optional[DishwasherProgram]:
