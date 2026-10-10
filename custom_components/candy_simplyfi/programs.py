@@ -1,7 +1,7 @@
 """Comprehensive database of programs for Candy Simply-Fi appliances."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 @dataclass
 class WasherProgram:
@@ -182,7 +182,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         name_it="Solo Asciugatura Cotone (Alta Temp - Pronto Armadio)",
         name_en="Dry Only Cottons (High Heat - Cupboard Dry)",
         pr=10,
-        pr_code=None,
+        pr_code=45,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -195,10 +195,10 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
     ),
     "dry_delicates_synthetics": WasherProgram(
         id="dry_delicates_synthetics",
-        name_it="Solo Asciugatura Sintetici & Delicati (Bassa Temp)",
-        name_en="Dry Only Synthetics & Delicates (Low Heat)",
+        name_it="Solo Asciugatura Sintetici & Delicati (Media Temp)",
+        name_en="Dry Only Synthetics & Delicates (Medium Heat)",
         pr=10,
-        pr_code=None,
+        pr_code=46,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -209,12 +209,28 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         is_dry_only=True,
         description="Asciugatura delicata ad aria calda a temperatura moderata senza acqua per fibre sintetiche e capi delicati.",
     ),
+    "dry_wool": WasherProgram(
+        id="dry_wool",
+        name_it="Solo Asciugatura Lana (Bassa Temp - Delicata)",
+        name_en="Dry Only Wool (Low Heat - Delicates)",
+        pr=10,
+        pr_code=47,
+        default_temp=0,
+        max_temp=0,
+        default_spin=0,
+        max_spin=0,
+        supports_drying=True,
+        supports_steam=False,
+        default_dry_time=1,
+        is_dry_only=True,
+        description="Asciugatura delicatissima a bassa temperatura approvata Woolmark senza acqua per capi in pura lana.",
+    ),
     "warm_air_refresh": WasherProgram(
         id="warm_air_refresh",
         name_it="Rinfresca a Caldo Antipiega (Aria Calda 30 Min)",
         name_en="Warm Air Anti-Crease Refresh (Hot Air 30 Min)",
         pr=10,
-        pr_code=None,
+        pr_code=48,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -230,7 +246,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         name_it="Solo Asciugatura a Tempo (60 Minuti)",
         name_en="Timed Dry Only (60 Minutes)",
         pr=10,
-        pr_code=None,
+        pr_code=45,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -246,7 +262,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         name_it="Solo Asciugatura a Tempo (90 Minuti)",
         name_en="Timed Dry Only (90 Minutes)",
         pr=10,
-        pr_code=None,
+        pr_code=45,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -262,7 +278,7 @@ WASHER_PROGRAMS: Dict[str, WasherProgram] = {
         name_it="Solo Asciugatura a Tempo (120 Minuti)",
         name_en="Timed Dry Only (120 Minutes)",
         pr=10,
-        pr_code=None,
+        pr_code=45,
         default_temp=0,
         max_temp=0,
         default_spin=0,
@@ -680,6 +696,25 @@ def get_washer_program_by_pr(
 
     # 2. Solo Asciugatura (Pr=10)
     if pr_val == 10:
+        if pr_code_val == 47:
+            return WASHER_PROGRAMS.get("dry_wool")
+        if pr_code_val == 46:
+            return WASHER_PROGRAMS.get("dry_delicates_synthetics")
+        if pr_code_val == 48:
+            return WASHER_PROGRAMS.get("warm_air_refresh")
+        if pr_code_val == 45:
+            try:
+                dt = int(dry_t_val) if dry_t_val is not None else 0
+            except (ValueError, TypeError):
+                dt = 0
+            if dt == 60:
+                return WASHER_PROGRAMS.get("dry_timed_60")
+            elif dt == 90:
+                return WASHER_PROGRAMS.get("dry_timed_90")
+            elif dt == 120:
+                return WASHER_PROGRAMS.get("dry_timed_120")
+            return WASHER_PROGRAMS.get("drying")
+
         try:
             dt = int(dry_t_val) if dry_t_val is not None else 0
         except (ValueError, TypeError):

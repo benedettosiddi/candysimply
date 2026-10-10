@@ -144,12 +144,12 @@ class CandyStartProgramButton(CandyBaseButton):
             pr_code = staged_prog.pr_code
 
             # SAFETY GUARANTEE FOR DRY-ONLY PROGRAMS:
-            # Standalone drying cycles use dial Pr=10 with purely thermal heat and forced air.
-            # Temperature and Spin MUST be 0, and PrCode MUST NOT be sent.
+            # Standalone drying cycles use dial Pr=10 with purely thermal forced hot air (no water wash).
+            # Temperature and Spin MUST be forced to 0, and PrCode MUST be passed (45 for Cottons, 46 for Synthetics, 47 for Wool, 48 for Refresh).
             if getattr(staged_prog, "is_dry_only", False):
                 temp = 0
                 spin = 0
-                pr_code = None
+                pr_code = staged_prog.pr_code or 45
                 if dry_t is None or dry_t == 0:
                     dry_t = getattr(staged_prog, "default_dry_time", 2) or 2
 

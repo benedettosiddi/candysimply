@@ -233,7 +233,6 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["mach_md"] = mach_md
             data["is_running"] = mach_md in ("2", "5")
             data["is_paused"] = mach_md == "3"
-            data["is_finished"] = mach_md == "7"
 
             # Program information
             pr_val = sub.get("Pr", 0)
@@ -250,7 +249,9 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 data["pr_code"] = None
 
             # Program phase
-            data["pr_ph"] = str(sub.get("PrPh", "0"))
+            pr_ph = str(sub.get("PrPh", "0"))
+            data["pr_ph"] = pr_ph
+            data["is_finished"] = mach_md in ("7", "8") or pr_ph == "5"
 
             # Remaining time
             del_val_raw = sub.get("DelVal", "255")
@@ -289,10 +290,10 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             dry_t_raw = sub.get("DryT", "0")
             data["dry_t"] = str(dry_t_raw)
             is_dry_only = pr_int == 10
-            is_active_dry_phase = data["pr_ph"] in ("5", "6")
+            is_active_dry_phase = pr_ph == "6"
 
             # In dry-only programs (Pr=10), drying is active across the cycle while running.
-            # In combo wash+dry programs or wash programs with drying selected, drying is active during PrPh 5 or 6.
+            # In combo wash+dry programs or wash programs with drying selected, drying is active during PrPh 6.
             if is_dry_only:
                 data["is_drying"] = data.get("is_running", False)
             else:

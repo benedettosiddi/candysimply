@@ -368,7 +368,7 @@ class CandyCard extends HTMLElement {
     else if (tempVal === 0 || tempVal <= 20) tempColor = 'rgba(0, 229, 255, 0.55)';
 
     if (!isRunning) {
-      if (isFinished) {
+      if (isFinished || phaseVal.includes('fine') || phaseVal === '5') {
         washerMode = 'finished';
         description = 'Ciclo terminato: bucato pronto e sportello sbloccato';
       } else if (isPaused) {
@@ -377,7 +377,7 @@ class CandyCard extends HTMLElement {
       }
     } else {
       // 1. Asciugatura / Rinfresco a Caldo
-      if (isDryingActive || progVal.includes('asciugatura') || progVal.includes('rinfresca a caldo')) {
+      if (isDryingActive || phaseVal.includes('asciugatura') || phaseVal === '6' || progVal.includes('asciugatura') || progVal.includes('rinfresca a caldo')) {
         washerMode = 'drying';
         spinDuration = '5.5s';
         waterLevel = 0;
@@ -1632,6 +1632,19 @@ class CandyCard extends HTMLElement {
           border-radius: 10px;
           padding: 7px 6px;
           text-align: center;
+          cursor: pointer;
+          user-select: none;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .param-chip:hover {
+          background: rgba(0, 210, 255, 0.12);
+          border-color: rgba(0, 210, 255, 0.4);
+          transform: translateY(-1px);
+        }
+
+        .param-chip:active {
+          transform: scale(0.96);
         }
 
         .param-chip .lbl {
@@ -2283,6 +2296,58 @@ class CandyCard extends HTMLElement {
         }
       });
     });
+
+    // Regolazione Parametri Rapida tramite Click sui Chip
+    const chipTemp = root.querySelector('.chip-temp');
+    if (chipTemp) {
+      chipTemp.title = 'Tocca per ciclare la temperatura (°C)';
+      chipTemp.addEventListener('click', () => {
+        const entities = this._getEntitiesMap();
+        if (entities.tempSelect && entities.tempSelect.state) {
+          const opts = entities.tempSelect.state.attributes?.options || [];
+          if (opts.length > 0) {
+            const current = entities.tempSelect.state.state;
+            const idx = opts.indexOf(current);
+            const next = opts[(idx + 1) % opts.length];
+            this._selectOption(entities.tempSelect, next);
+          }
+        }
+      });
+    }
+
+    const chipSpin = root.querySelector('.chip-spin');
+    if (chipSpin) {
+      chipSpin.title = 'Tocca per ciclare la velocità di centrifuga (RPM)';
+      chipSpin.addEventListener('click', () => {
+        const entities = this._getEntitiesMap();
+        if (entities.spinSelect && entities.spinSelect.state) {
+          const opts = entities.spinSelect.state.attributes?.options || [];
+          if (opts.length > 0) {
+            const current = entities.spinSelect.state.state;
+            const idx = opts.indexOf(current);
+            const next = opts[(idx + 1) % opts.length];
+            this._selectOption(entities.spinSelect, next);
+          }
+        }
+      });
+    }
+
+    const chipDry = root.querySelector('.chip-dry');
+    if (chipDry) {
+      chipDry.title = 'Tocca per impostare il livello di asciugatura';
+      chipDry.addEventListener('click', () => {
+        const entities = this._getEntitiesMap();
+        if (entities.drySelect && entities.drySelect.state) {
+          const opts = entities.drySelect.state.attributes?.options || [];
+          if (opts.length > 0) {
+            const current = entities.drySelect.state.state;
+            const idx = opts.indexOf(current);
+            const next = opts[(idx + 1) % opts.length];
+            this._selectOption(entities.drySelect, next);
+          }
+        }
+      });
+    }
 
     const btnStart = root.querySelector('.btn-start');
     if (btnStart) {

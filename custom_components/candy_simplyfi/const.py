@@ -65,20 +65,26 @@ WASHER_PHASE_IDLE: Final = "0"
 WASHER_PHASE_PREWASH: Final = "1"
 WASHER_PHASE_WASH: Final = "2"
 WASHER_PHASE_RINSE: Final = "3"
-WASHER_PHASE_SPIN: Final = "4"
-WASHER_PHASE_DRYING: Final = "5"
-WASHER_PHASE_FINISHED: Final = "6"
+WASHER_PHASE_LAST_RINSE: Final = "4"
+WASHER_PHASE_FINISHED: Final = "5"
+WASHER_PHASE_DRYING: Final = "6"
+WASHER_PHASE_ERROR: Final = "7"
 WASHER_PHASE_STEAM: Final = "8"
+WASHER_PHASE_GOOD_NIGHT: Final = "9"
+WASHER_PHASE_SPIN: Final = "10"
 
 WASHER_PHASES: Final = {
-    WASHER_PHASE_IDLE: "Non avviato",
+    WASHER_PHASE_IDLE: "Non avviato / Standby",
     WASHER_PHASE_PREWASH: "Prelavaggio",
     WASHER_PHASE_WASH: "Lavaggio",
     WASHER_PHASE_RINSE: "Risciacquo",
-    WASHER_PHASE_SPIN: "Centrifuga",
+    WASHER_PHASE_LAST_RINSE: "Ultimo risciacquo",
+    WASHER_PHASE_FINISHED: "Fine ciclo / Pronto",
     WASHER_PHASE_DRYING: "Asciugatura",
-    WASHER_PHASE_FINISHED: "Fine ciclo / Antipiega",
+    WASHER_PHASE_ERROR: "Anomalia / Errore",
     WASHER_PHASE_STEAM: "Trattamento Vapore (Refresh)",
+    WASHER_PHASE_GOOD_NIGHT: "Centrifuga Notturna Silenziosa",
+    WASHER_PHASE_SPIN: "Centrifuga finale",
 }
 
 # Dishwasher Modes (StatoDWash)
