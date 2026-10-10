@@ -376,23 +376,25 @@ class CandyCard extends HTMLElement {
         description = 'Ciclo in pausa';
       }
     } else {
-      // 1. Asciugatura
-      if (isDryingActive || progVal.includes('asciugatura')) {
+      // 1. Asciugatura / Rinfresco a Caldo
+      if (isDryingActive || progVal.includes('asciugatura') || progVal.includes('rinfresca a caldo')) {
         washerMode = 'drying';
         spinDuration = '5.5s';
         waterLevel = 0;
         heatGlow = true;
         hasSteam = true;
-        description = 'Asciugatura attiva con rotazione antipiega e riscaldamento termico';
+        description = progVal.includes('rinfresca a caldo')
+          ? 'Rinfresco antipiega a secco con aria calda ventilata (senza acqua)'
+          : 'Asciugatura attiva con aria calda ventilata e rotazione antipiega';
       }
-      // 2. Vapore / Steam Refresh
-      else if (isSteamActive || progVal.includes('vapore') || progVal.includes('steam')) {
+      // 2. Vapore / Pre-Stiro
+      else if (isSteamActive || progVal.includes('vapore') || progVal.includes('pre-stiro') || progVal.includes('steam')) {
         washerMode = 'steam';
         spinDuration = '4.5s';
         waterLevel = 0;
         hasSteam = true;
         heatGlow = true;
-        description = 'Trattamento a vapore igienizzante e distensione fibre';
+        description = 'Trattamento vapore pre-stiro: inumidisce le fibre per facilitare la stiratura a ferro';
       }
       // 3. Centrifuga o Scarico
       else if (phaseVal.includes('centrifuga') || phaseVal.includes('scarico') || phaseVal === '4' || progVal.includes('centrifuga') || progVal.includes('scarico')) {

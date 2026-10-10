@@ -81,6 +81,10 @@ def test_washer_programs_count():
     p10 = get_washer_program_by_pr(10, 0)
     assert p10 is not None and p10.id == "drying" and p10.is_dry_only
 
+    assert "warm_air_refresh" in WASHER_PROGRAMS
+    warm_p = WASHER_PROGRAMS["warm_air_refresh"]
+    assert warm_p.is_dry_only and warm_p.supports_drying and warm_p.default_dry_time == 30
+
 
 def test_time_formatting():
     assert format_remaining_time(0) == "Completato / Pronto"
