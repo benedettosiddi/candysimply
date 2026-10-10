@@ -42,6 +42,7 @@ async def async_setup_entry(
                 CandyTabsBinarySensor(coordinator),
                 CandyExtraDryBinarySensor(coordinator),
                 CandyOpenDoorOptBinarySensor(coordinator),
+                CandyAddDishBinarySensor(coordinator),
             ]
         )
     else:
@@ -356,3 +357,22 @@ class CandyOpenDoorOptBinarySensor(CandyBaseBinarySensor):
         """Return True if smart door open option is enabled."""
         data = self.coordinator.data or {}
         return data.get("open_door_opt", False)
+
+
+class CandyAddDishBinarySensor(CandyBaseBinarySensor):
+    """Binary sensor indicating if it is safe to add forgotten dishes (Add-Dish on Candy Brava)."""
+
+    def __init__(self, coordinator: CandyDataUpdateCoordinator) -> None:
+        """Initialize Add-Dish sensor."""
+        super().__init__(
+            coordinator,
+            "add_dish_allowed",
+            "Aggiunta Stoviglie Possibile (Add-Dish)",
+            icon="mdi:silverware-clean",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if Add-Dish window is active."""
+        data = self.coordinator.data or {}
+        return bool(data.get("add_dish_allowed", False))

@@ -183,6 +183,7 @@ class CandyCard extends HTMLElement {
       running: this._findEntity(['in_funzione', 'is_running', 'running'], 'binary_sensor'),
       doorLocked: !isDishwasher ? this._findEntity(['oblo_bloccato_sicurezza', 'oblo_bloccato', 'door_locked'], 'binary_sensor') : null,
       doorOpen: isDishwasher ? this._findEntity(['sportello_aperto', 'door_open', 'apertura_sportello'], 'binary_sensor') : null,
+      addDish: isDishwasher ? this._findEntity(['aggiunta_stoviglie', 'add_dish'], 'binary_sensor') : null,
       missSalt: isDishwasher ? this._findEntity(['mancanza_sale_rigenerante', 'mancanza_sale', 'missing_salt', 'miss_salt'], 'binary_sensor') : null,
       missRinse: isDishwasher ? this._findEntity(['mancanza_brillantante', 'missing_rinse_aid', 'missing_rinse', 'miss_rinse'], 'binary_sensor') : null,
       dryingActive: !isDishwasher ? this._findEntity(['fase_asciugatura_attiva', 'drying_active'], 'binary_sensor') : null,
@@ -309,6 +310,10 @@ class CandyCard extends HTMLElement {
           dwMode = 'dw-normal';
           description = 'Lavaggio normale con doppi bracci irroratori';
         }
+
+        if (entities.addDish?.state?.state === 'on') {
+          description += ' • Add-Dish attivo: sportello apribile per aggiungere stoviglie';
+        }
       }
 
       return {
@@ -321,6 +326,7 @@ class CandyCard extends HTMLElement {
         isDoorOpen: entities.doorOpen?.state?.state === 'on',
         isSmartDoor: entities.openDoorSwitch?.state?.state === 'on',
         isHalfLoad: entities.halfLoadSwitch?.state?.state === 'on',
+        isAddDishAllowed: entities.addDish?.state?.state === 'on',
         missSalt: entities.missSalt?.state?.state === 'on',
         missRinse: entities.missRinse?.state?.state === 'on',
       };

@@ -228,6 +228,18 @@ def test_coordinator_dishwasher_status_dwash_parsing():
     assert parsed["miss_rinse"] is False
     assert parsed["tabs_3in1"] is True
     assert parsed["open_door_opt"] is True
+    assert parsed["add_dish_allowed"] is False
+
+    running_dwash = {
+        "statusDWash": {
+            "StatoDWash": "3",
+            "StartStop": "1",
+            "Program": "P2",
+            "r5": "1",
+        }
+    }
+    parsed_running = coordinator._parse_data(running_dwash)
+    assert parsed_running["add_dish_allowed"] is True
 
 
 def test_get_device_model_name():

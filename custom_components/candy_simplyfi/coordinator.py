@@ -197,6 +197,14 @@ class CandyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             data["eco"] = str(sub.get("Eco", sub.get("eco", "0"))) == "1"
             data["buzzer_mute"] = str(sub.get("BM", "0")) == "1"
 
+            # Add-Dish indicator (Candy Brava: allows adding forgotten dishes during initial phase)
+            r5_val = str(sub.get("r5", "0")).strip()
+            data["add_dish_allowed"] = (
+                data["is_running"]
+                and stato_dwash in ("2", "3")
+                and r5_val == "1"
+            )
+
             # Remote control status for dishwasher
             data["remote_control_enabled"] = (
                 str(sub.get("StatoWiFi", "")).strip() == "1"
