@@ -210,8 +210,10 @@ class CandyProgramPhaseSensor(CandyBaseSensor):
         phase_raw = str(data.get("pr_ph", "0"))
         pr_code = data.get("pr_code")
 
-        # Steam Refresh cycle (PrCode 45)
-        if pr_code == 45:
+        # Steam Refresh cycle (PrCode 17, 45 or Phase 8)
+        if pr_code in (17, 45) or phase_raw == "8":
+            if phase_raw == "8":
+                return "Generazione Vapore (Refresh)"
             if phase_raw in ("1", "2"):
                 return "Generazione Vapore & Distensione Fibre"
             if phase_raw in ("3", "4", "5"):
